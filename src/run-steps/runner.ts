@@ -297,7 +297,6 @@ async function setSnapshotAndStepIn({ context, acc, filePaths, threadId }: SetSn
         (draft) => void applyDiff(draft, diff),
         (patches) => void acc.steps.push(patches),
       )
-      // acc.steps.push(diff.map(recursiveDiffPatchToImmerPatch))
       acc.previous = snapshot // set base for next step
     }
 
@@ -387,16 +386,3 @@ function isStackFrameOfSourceFile(fileAbsolutePaths: string[]) {
     return !!stackFrame.source && fileAbsolutePaths.some((filePath) => filePath === stackFrame.source?.path)
   }
 }
-
-// function recursiveDiffPatchToImmerPatch(patch: PatchDiff): Patch {
-//   const opAdapter: Record<PatchDiff['op'], Patch['op']> = {
-//     add: 'add',
-//     delete: 'remove',
-//     update: 'replace',
-//   }
-//   return {
-//     op: opAdapter[patch.op],
-//     path: patch.path,
-//     ...(patch.val && { value: patch.val }),
-//   }
-// }
