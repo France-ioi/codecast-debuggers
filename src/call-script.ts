@@ -1,7 +1,7 @@
 // @ts-check
 import path from 'path'
 import cp from 'child_process'
-import { LoggerLevel } from './logger'
+import { logger, LoggerLevel } from './logger'
 import { LanguageExtension, toLanguageExtension } from './run-steps/factory'
 
 
@@ -20,7 +20,7 @@ export async function callScript(mainFilePath: string, logLevel: LoggerLevel = '
 
   const begin = 'RESULT_BEGIN'
   const end = 'RESULT_END'
-  console.info('command\n', [command, ...args].join(' \\\n  '))
+  logger.info('command\n', [command, ...args].join(' \\\n  '))
   const dockerProcess = cp.spawnSync(command, args, { stdio: ['inherit', 'pipe', 'inherit'] })
   const result = dockerProcess.stdout?.toString('utf-8')
   
