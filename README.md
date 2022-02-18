@@ -43,7 +43,7 @@ npm run debug ./samples/python/hello_world.py # For Python
 ### Method 1 − Copy files from actual extension
 
 1. Install [codelldb](https://marketplace.visualstudio.com/items?itemName=vadimcn.vscode-lldb) VSCode extension
-2. Go to `~/.vscode/extensions/~/.vscode/extensions/vadimcn.vscode-lldb-[version]`
+2. Go to `~/.vscode/extensions/vadimcn.vscode-lldb-[version]`
 3. Copy folders `adapter`, `formatters` and `lldb` to `./vscode-lldb`
 
 ### Method 2 − Build from repo
