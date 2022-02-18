@@ -15,7 +15,9 @@
   "license": "ISC",
   "// type": "module",
   "dependencies": {
-    "node-debugprotocol-client": "^0.5.0"
+    "immer": "^9.0.12",
+    "node-debugprotocol-client": "^0.5.0",
+    "recursive-diff": "^1.0.8"
   },
   "devDependencies": {
     "@types/jest": "^27.4.0",
