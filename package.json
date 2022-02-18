@@ -10,6 +10,7 @@
     "build:python": "docker build -f ./Python_Dockerfile . -t python-debugger",
     "debug": "node out/debug.js",
     "lint": "eslint src",
+    "pretest": "npm run build:ts",
     "test": "jest src/"
   },
   "author": "",
