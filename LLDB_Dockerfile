@@ -1,0 +1,24 @@
+FROM node:16.13.2 as node
+FROM ubuntu:20.04
+
+COPY --from=node /usr/local/lib/node_modules /usr/local/lib/node_modules
+COPY --from=node /usr/local/bin/node /usr/local/bin/node
+RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm
+
+# Install Rust because adapter server is written in Rust
+RUN apt-get update && apt-get install build-essential curl -y
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rustup_install && sh rustup_install -y
+
+# Add rust binaries to $PATH
+ENV PATH="$PATH:/root/.cargo/bin"
+RUN echo "$PATH"
+RUN rustc -V
+# RUN ls -la /usr/share/gcc
+RUN gcc --version
+
+ENV ROOT=/usr/project
+WORKDIR ${ROOT}
+
+# EXPOSE ${SERVER_PORT}
+ENTRYPOINT ["node", "./out/script.js"]
+CMD [""]

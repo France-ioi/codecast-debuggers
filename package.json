@@ -1,0 +1,25 @@
+{
+  "name": "php-dap",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build:ts": "tsc --outDir out",
+    "build:lldb": "docker build -f ./LLDB_Dockerfile . -t lldb-debugger",
+    "build:php": "docker build -f ./PHP_Dockerfile . -t php-debugger",
+    "build:python": "docker build -f ./Python_Dockerfile . -t python-debugger",
+    "debug": "node debug.mjs"
+  },
+  "author": "",
+  "license": "ISC",
+  "// type": "module",
+  "dependencies": {
+    "node-debugprotocol-client": "^0.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^17.0.17",
+    "ts-node": "^10.4.0",
+    "typescript": "^4.5.4",
+    "vscode-debugprotocol": "^1.50.1"
+  }
+}
