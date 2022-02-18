@@ -1,11 +1,13 @@
 import cp from 'child_process';
 import fs from 'fs';
 import path from 'path';
-import { getDiff, rdiffResult as PatchDiff } from 'recursive-diff';
-import { Patch } from 'immer';
+import { getDiff, applyDiff } from 'recursive-diff';
+import produce, { Patch, enablePatches } from 'immer';
 import { LogLevel, SocketDebugClient, Unsubscribable } from 'node-debugprotocol-client';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { logger } from '../logger';
+
+enablePatches();
 
 export interface MakeRunnerConfig {
   /**
@@ -74,8 +76,8 @@ export const makeRunner = ({
 }: MakeRunnerConfig): Runner => {
   const destroyed = false;
   const acc: StepsAcc = {
-    previous: null,
-    patches: [],
+    previous: {},
+    steps: [],
   };
   let resolveSteps: () => void = () => {};
   const steps = new Promise<StepsAcc>(resolve => {
@@ -151,22 +153,23 @@ export const makeRunner = ({
     }
 
     logger.debug(6, '[runner] return result');
-    return result.patches;
+    return result.steps;
   };
 };
 
-export type Steps = StepsAcc['patches'];
+export type Step = Patch[];
+export type Steps = Step[];
 
 export interface StepsAcc {
   /**
    * previous snapshot, `null` only at first step (step 0)
    */
-  previous: StepSnapshot | null,
+  previous: Partial<StepSnapshot>,
   /**
    * Patch list per step
    * Each patch list is computed from previous step and *not* from start.
    */
-  patches: Patch[][], // Patches _per step based on previous step_
+  steps: Steps, // Patches _per step based on previous step_
 }
 export interface StepSnapshot {
   stackFrames: StackFrame[],
@@ -277,7 +280,7 @@ interface SetSnapshotAndStepInParams {
   threadId: GetSnapshotParams['threadId'],
 }
 async function setSnapshotAndStepIn({ context, acc, filePaths, threadId }: SetSnapshotAndStepInParams): Promise<void> {
-  const i = acc.previous === null ? 1 : acc.patches.length + 2;
+  const i = acc.previous === null ? 1 : acc.steps.length + 2;
   try {
     logger.debug('Execute steps', i);
     const snapshot = await getSnapshot({ context, filePaths, threadId });
@@ -285,7 +288,17 @@ async function setSnapshotAndStepIn({ context, acc, filePaths, threadId }: SetSn
 
     if (snapshot.stackFrames.length > 0) {
       const diff = getDiff(acc.previous, snapshot);
-      acc.patches.push(diff.map(recursiveDiffPatchToImmerPatch));
+      /**
+       * Computing the patches is not very straighforward:
+       * 1. Compute the diff between previous & current snapshot using recursive-diff because immer doesn't do that
+       * 2. Apply that diff to the ImmerJS draft to extract patches under ImmerJS formats
+       */
+      produce(
+        acc.previous,
+        draft => void applyDiff(draft, diff),
+        patches => void acc.steps.push(patches),
+      );
+      // acc.steps.push(diff.map(recursiveDiffPatchToImmerPatch))
       acc.previous = snapshot; // set base for next step
     }
 
@@ -375,15 +388,15 @@ function isStackFrameOfSourceFile(fileAbsolutePaths: string[]) {
     !!stackFrame.source && fileAbsolutePaths.some(filePath => filePath === stackFrame.source?.path);
 }
 
-function recursiveDiffPatchToImmerPatch(patch: PatchDiff): Patch {
-  const opAdapter: Record<PatchDiff['op'], Patch['op']> = {
-    add: 'add',
-    delete: 'remove',
-    update: 'replace',
-  };
-  return {
-    op: opAdapter[patch.op],
-    path: patch.path,
-    value: patch.val, // eslint-disable-line
-  };
-}
+// function recursiveDiffPatchToImmerPatch(patch: PatchDiff): Patch {
+//   const opAdapter: Record<PatchDiff['op'], Patch['op']> = {
+//     add: 'add',
+//     delete: 'remove',
+//     update: 'replace',
+//   }
+//   return {
+//     op: opAdapter[patch.op],
+//     path: patch.path,
+//     ...(patch.val && { value: patch.val }),
+//   }
+// }
