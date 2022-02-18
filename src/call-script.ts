@@ -1,17 +1,18 @@
 // @ts-check
 import path from 'path'
 import cp from 'child_process'
+import { LoggerLevel } from './logger'
+import { LanguageExtension, toLanguageExtension } from './run-steps/factory'
 
-// const escapeBashString = (string) => `"${string.replace(/([\$"])/g, '\\$1')}"`
 
 /**
  * Call script
  * @param {string} mainFilePath path to main file of the project to debug
- * @param {?import('./src/logger').LoggerLevel} logLevel
- * @returns {Promise<string>} rawJSON
+ * @param {LoggerLevel} [logLevel]
+ * @returns {Promise<string>} stringified JSON
  */
-export async function callScript(mainFilePath, logLevel = 'off') {
-  const fileExtension = path.extname(mainFilePath)
+export async function callScript(mainFilePath: string, logLevel: LoggerLevel = 'off'): Promise<string> {
+  const fileExtension = toLanguageExtension(path.extname(mainFilePath))
   const docker = dockerRunConfigs[fileExtension]
   if (!docker) throw new Error(`Unknown extension "${fileExtension}". Accepted: "${Object.keys(dockerRunConfigs).join('", "')}"`)
 
@@ -27,17 +28,10 @@ export async function callScript(mainFilePath, logLevel = 'off') {
   return rawJSON
 }
 
-/**
- * @typedef {'lldb-debugger'|'php-debugger'|'python-debugger'} DockerImage
- */
+type DockerImage = 'lldb-debugger' | 'php-debugger' | 'python-debugger'
+type DockerRunConfig = { image: DockerImage }
 
-/**
- * @typedef DockerRunConfig
- * @property {DockerImage} image
- */
-
-/** @type {Record<import('./src/run-steps/factory').LanguageExtension, DockerRunConfig>} */
-const dockerRunConfigs = {
+const dockerRunConfigs: Record<LanguageExtension, DockerRunConfig> = {
   '.c': {
     image: 'lldb-debugger',
   },
@@ -56,10 +50,10 @@ const dockerRunConfigs = {
  * Returns the docker run command
  * @param {DockerRunConfig} docker
  * @param {string} mainFilePath
- * @param {import('./src/logger').LoggerLevel} logLevel
+ * @param {LoggerLevel} logLevel
  * @returns {{ command: string, args: string[] }}
  */
-const dockerRunCommand = (docker, mainFilePath, logLevel) => {
+const dockerRunCommand = (docker: DockerRunConfig, mainFilePath: string, logLevel: LoggerLevel) => {
   const projectPath = path.dirname(mainFilePath)
   const command = 'docker'
   const args = [
@@ -81,26 +75,23 @@ const dockerRunCommand = (docker, mainFilePath, logLevel) => {
 const paths = {
   dockerRoot: '/usr/project',
   selfRoot: process.cwd(),
-  sources: (root) => path.resolve(root, './sources'),
-  output: (root) => path.resolve(root, './out'),
-  nodeModules: (root) => path.resolve(root, './node_modules'),
-  packageJson: (root) => path.resolve(root, './package.json'),
-  packageLock: (root) => path.resolve(root, './package-lock.json'),
+  sources: (root: string) => path.resolve(root, './sources'),
+  output: (root: string) => path.resolve(root, './out'),
+  nodeModules: (root: string) => path.resolve(root, './node_modules'),
+  packageJson: (root: string) => path.resolve(root, './package.json'),
+  packageLock: (root: string) => path.resolve(root, './package-lock.json'),
 
-  vscodeLldb: (root) => path.resolve(root, './vscode-lldb'),
-  vscodePhpDebug: (root) => path.resolve(root, './vscode-php-debug'),
+  vscodeLldb: (root: string) => path.resolve(root, './vscode-lldb'),
+  vscodePhpDebug: (root: string) => path.resolve(root, './vscode-php-debug'),
 }
 
-/**
- * @typedef DockerMount
- * @property {'bind'} [type]
- * @property {string} source
- * @property {string} target
- * @property {boolean} [readOnly]
- */
-
-/** @type {Record<DockerImage, DockerMount[]>} */
-const mountsPerImage = {
+type DockerMount = {
+  type?: 'bind',
+  source: string,
+  target: string,
+  readOnly?: boolean,
+}
+const mountsPerImage: Record<DockerImage, DockerMount[]> = {
   'lldb-debugger': [
     { source: paths.vscodeLldb(paths.selfRoot), target: paths.vscodeLldb(paths.dockerRoot) },
   ],
@@ -111,11 +102,11 @@ const mountsPerImage = {
 }
 
 /**
- * 
- * @param {DockerMount} mount 
+ * Build docker "--mount" CLI argument
+ * @param {DockerMount} mount
  * @returns {['--mount', string]} arguments for "--mount"
  */
-const toDockerMountArgs = ({ type = 'bind', source, target, readOnly }) => {
+const toDockerMountArgs = ({ type = 'bind', source, target, readOnly }: DockerMount): ['--mount', string] => {
   const arg = [
     `type=${type}`,
     `source=${source}`,

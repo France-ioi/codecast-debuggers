@@ -1,7 +1,5 @@
-// @ts-check
-
 import fs from 'fs'
-import { callScript } from './call-script.mjs'
+import { callScript } from './call-script'
 
 const [filePath] = process.argv.slice(-1)
 if (!filePath || !fs.existsSync(filePath)) throw new Error('File not found. Expected a file path like "samples/php/test.php"')
