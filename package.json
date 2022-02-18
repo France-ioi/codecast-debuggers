@@ -9,6 +9,7 @@
     "build:php": "docker build -f ./PHP_Dockerfile . -t php-debugger",
     "build:python": "docker build -f ./Python_Dockerfile . -t python-debugger",
     "debug": "node out/debug.js",
+    "pretest": "npm run build:ts",
     "test": "jest src/"
   },
   "author": "",
