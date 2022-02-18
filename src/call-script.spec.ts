@@ -1,11 +1,11 @@
 import { callScript } from './call-script'
 import { applyPatches, Patch, enablePatches } from 'immer'
-import { StepSnapshot } from './run-steps/runner'
+import { Steps, StepSnapshot } from './run-steps/runner'
 
 enablePatches()
 
 describe('callScript()', () => {
-  function reconstructResultFromSteps(steps: Patch[][]): StepSnapshot[] {
+  function reconstructResultFromSteps(steps: Steps): StepSnapshot[] {
     return steps.reduce((acc, patches) => {
       const previous = acc[acc.length-1] ?? {}
       const snapshot = applyPatches(previous, patches) as StepSnapshot
