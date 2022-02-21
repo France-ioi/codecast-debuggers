@@ -72,4 +72,7 @@ Nothing to do, it is already maintained by a Microsoft team ; DebugPy already im
 
 ## Architecture
 
-<img alt="Repo architecture graph" src="./dependencygraph.svg" height="500px">
+<img alt="Repo architecture graph" src="./dependencygraph.svg" height="440px">
+
+The missing brick is:
+- `script/run-in-docker.ts` :arrow_right: `script/run-steps.ts` since “run-in-docker” spawns synchronously a docker command executing “run-steps” in a docker container.
