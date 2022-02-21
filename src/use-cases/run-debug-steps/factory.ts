@@ -2,13 +2,14 @@ import { RunnerOptions, Steps } from './runner'
 import { runStepsWithPHPDebugger } from './php-runner'
 import { runStepsWithPythonDebugger } from './python-runner'
 import { runStepsWithLLDB } from './lldb-runner'
+import { type Logger } from '../../lib/logger'
 
-export const runSteps = (language: Language, options: RunnerOptions): Promise<Steps> => {
+export const runSteps = (language: Language, logger: Logger, options: RunnerOptions): Promise<Steps> => {
   switch (language) {
-    case 'PHP': return runStepsWithPHPDebugger(options)
-    case 'C': return runStepsWithLLDB('C', options)
-    case 'C++': return runStepsWithLLDB('C++', options)
-    case 'Python': return runStepsWithPythonDebugger(options)
+    case 'PHP': return runStepsWithPHPDebugger(options, logger)
+    case 'C': return runStepsWithLLDB('C', options, logger)
+    case 'C++': return runStepsWithLLDB('C++', options, logger)
+    case 'Python': return runStepsWithPythonDebugger(options, logger)
   }
   throw new Error(`Unknown language "${language}". Expected one of "${languages.join('", "')}"`)
 }

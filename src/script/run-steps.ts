@@ -1,7 +1,7 @@
 // @ts-check
 import path from 'path'
-import { logger } from './logger'
-import { languageByExtension, runSteps, toLanguageExtension } from './run-steps/factory'
+import { logger } from '../lib/logger'
+import { languageByExtension, runSteps, toLanguageExtension } from '../use-cases/run-debug-steps/factory'
 
 logger.debug('process args', process.argv.slice(2))
 
@@ -19,7 +19,7 @@ async function main() {
   logger.debug({ language, mainFilePath })
 
   if (!mainFilePath) throw new Error('mainFilePath must be defined')
-  const result = await runSteps(language, {
+  const result = await runSteps(language, logger, {
     logLevel: logger.level === 'debug' ? 'On' : 'Off',
     main: { relativePath: mainFilePath },
     files: [],

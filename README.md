@@ -68,3 +68,8 @@ node ./out/phpDebug.js --server=4711
 ## Re-install Python debug adapter
 
 Nothing to do, it is already maintained by a Microsoft team ; DebugPy already implements the Debug Adapter Protocol.
+
+
+## Architecture
+
+<img alt="Repo architecture graph" src="./dependencygraph.svg" height="500px">

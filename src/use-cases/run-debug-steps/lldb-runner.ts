@@ -3,12 +3,12 @@ import { LogLevel, SocketDebugClient } from 'node-debugprotocol-client'
 import fs from 'fs'
 import path from 'path'
 import { DebugProtocol } from 'vscode-debugprotocol'
-import { logger } from '../logger'
+import type { Logger } from '../../lib/logger'
 import { MakeRunnerConfig, makeRunner, RunnerOptions } from './runner'
 
 type Language = 'C' | 'C++'
 
-export const runStepsWithLLDB = (language: Language, options: RunnerOptions) => {
+export const runStepsWithLLDB = (language: Language, options: RunnerOptions, logger: Logger) => {
   const config = configurations[language]
   let executablePath: string | null = null
 
@@ -27,28 +27,28 @@ export const runStepsWithLLDB = (language: Language, options: RunnerOptions) => 
       if (executablePath) await fs.promises.unlink(executablePath).catch(() => {/* throws if already deleted */})
     },
   })
-  return runner(options)
+  return runner(options, logger)
 }
 
 const connect = (
   language: Language,
   config: Configuration,
   onExecutablePath: (thePath: string) => void,
-): MakeRunnerConfig['connect'] => async ({ beforeInitialize, logLevel, processes, programPath }) => {
+): MakeRunnerConfig['connect'] => async ({ beforeInitialize, logger, processes, programPath }) => {
   const dap = {
     host: 'localhost',
     port: 4711,
   }
 
   logger.debug(1, '[LLDB StepsRunner] start adapter server')
-  await spawnAdapterServer(dap, processes)
+  await spawnAdapterServer(dap, processes, logger)
   
   logger.debug(2, '[LLDB StepsRunner] instantiate SocketDebugClient')
   const client = new SocketDebugClient({
     host: dap.host,
     port: dap.port,
     loggerName: `${language} debug adapter client`,
-    logLevel,
+    logLevel: logger.level === 'off' ? LogLevel.Off : LogLevel.On,
   })
 
   logger.debug(3, '[LLDB StepsRunner] register events')
@@ -100,7 +100,7 @@ const connect = (
   return { client }
 }
 
-async function spawnAdapterServer(dap: { host: string, port: number }, processes: cp.ChildProcess[]): Promise<void> {
+async function spawnAdapterServer(dap: { host: string, port: number }, processes: cp.ChildProcess[], logger: Logger): Promise<void> {
   logger.debug('Start LLDB DAP Server on port', dap.port)
 
   const root = path.join(process.cwd(), 'vscode-lldb')

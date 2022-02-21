@@ -2,7 +2,7 @@ import cp from 'child_process'
 import path from 'path'
 import { LogLevel, SocketDebugClient } from 'node-debugprotocol-client'
 import { DebugProtocol } from 'vscode-debugprotocol'
-import { logger } from '../logger'
+import type { Logger } from '../../lib/logger'
 import { makeRunner, MakeRunnerConfig } from './runner'
 
 export const runStepsWithPythonDebugger = makeRunner({
@@ -13,7 +13,7 @@ export const runStepsWithPythonDebugger = makeRunner({
   },
 })
 
-const connect: MakeRunnerConfig['connect'] = async ({ processes, programPath, logLevel, beforeInitialize }) => {
+const connect: MakeRunnerConfig['connect'] = async ({ processes, programPath, logger, beforeInitialize }) => {
   const language = 'Python'
   const dap = {
     host: 'localhost',
@@ -21,14 +21,14 @@ const connect: MakeRunnerConfig['connect'] = async ({ processes, programPath, lo
   }
   
   logger.debug(1, '[Python StepsRunner] start adapter server')
-  await spawnDebugAdapterServer(dap, processes)
+  await spawnDebugAdapterServer(dap, processes, logger)
 
   logger.debug(2, '[Python StepsRunner] instantiate SocketDebugClient')
   const client = new SocketDebugClient({
     host: dap.host,
     port: dap.port,
     loggerName: `${language} debug adapter client`,
-    logLevel,
+    logLevel: logger.level === 'off' ? LogLevel.Off : LogLevel.On,
   })
 
   const initialized = new Promise<void>((resolve) => {
@@ -65,7 +65,7 @@ const connect: MakeRunnerConfig['connect'] = async ({ processes, programPath, lo
   return { client }
 }
 
-async function spawnDebugAdapterServer(dap: { host: string, port: number }, processes: cp.ChildProcess[]): Promise<void> {
+async function spawnDebugAdapterServer(dap: { host: string, port: number }, processes: cp.ChildProcess[], logger: Logger): Promise<void> {
   const debugPyFolderPath = await findDebugPyFolder()
 
   return new Promise<void>((resolve) => {

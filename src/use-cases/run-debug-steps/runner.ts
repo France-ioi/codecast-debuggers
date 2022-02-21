@@ -1,11 +1,11 @@
 import cp from 'child_process'
 import fs from 'fs'
 import path from 'path'
-import { getDiff, applyDiff, rdiffResult as PatchDiff } from 'recursive-diff'
+import { getDiff, applyDiff } from 'recursive-diff'
 import produce, { Patch, enablePatches } from 'immer'
-import { LogLevel, SocketDebugClient, Unsubscribable } from 'node-debugprotocol-client'
+import { SocketDebugClient, Unsubscribable } from 'node-debugprotocol-client'
 import { DebugProtocol } from 'vscode-debugprotocol'
-import { logger } from '../logger'
+import type { Logger } from '../../lib/logger'
 
 enablePatches()
 
@@ -19,8 +19,8 @@ export interface MakeRunnerConfig {
     processes: cp.ChildProcess[],
     subscribers: Unsubscribable[],
     programPath: string,
-    logLevel: LogLevel,
     beforeInitialize: (client: SocketDebugClient) => void,
+    logger: Logger,
   }) => Promise<{ client: SocketDebugClient }>
 
   /**
@@ -56,12 +56,13 @@ export interface RunnerOptions {
  * Context that will be passed through every debugging extract step (stack frame, scope, variable)
  */
 interface RunStepContext {
+  logger: Logger,
   client: SocketDebugClient,
   canDigVariable: (variable: DebugProtocol.Variable) => boolean,
   canDigScope: (scope: DebugProtocol.Scope) => boolean,
 }
 
-export type Runner = (options: RunnerOptions) => Promise<Steps>
+export type Runner = (options: RunnerOptions, logger: Logger) => Promise<Steps>
 
 /**
  * Used by a factory to create a runner per debugger based on the language
@@ -83,7 +84,7 @@ export const makeRunner = ({
   const steps = new Promise<StepsAcc>((resolve) => {
     resolveSteps = () => resolve(acc)
   })
-  return async (options: RunnerOptions) => {
+  return async (options: RunnerOptions, logger: Logger) => {
     const processes: cp.ChildProcess[] = []
     const subscribers: Unsubscribable[] = []
     const programPath = path.resolve(process.cwd(), options.main.relativePath)
@@ -116,8 +117,8 @@ export const makeRunner = ({
       processes,
       subscribers,
       programPath,
-      logLevel: LogLevel[options.logLevel ?? 'Off'],
-      beforeInitialize: (client) => registerEvents(client, resolveSteps),
+      logger,
+      beforeInitialize: (client) => registerEvents(logger, client, resolveSteps),
     })
 
     const subscriber = client.onStopped(async (stoppedEvent) => {
@@ -127,14 +128,14 @@ export const makeRunner = ({
       setSnapshotAndStepIn({
         acc,
         filePaths: [options.main, ...options.files].map((file) => path.resolve(process.cwd(), file.relativePath)),
-        context: { client, canDigScope, canDigVariable },
+        context: { logger, client, canDigScope, canDigVariable },
         threadId: stoppedEvent.threadId,
       })
     })
     subscribers.push(subscriber)
 
     logger.debug(2, '[runner] setBreakpoints()')
-    await setBreakpoints({ client, programPath })
+    await setBreakpoints({ logger, client, programPath })
 
     logger.debug(3, '[runner] Configuration Done')
     // send 'configuration done' (in some debuggers this will trigger 'continue' if attach was awaited)
@@ -146,7 +147,7 @@ export const makeRunner = ({
 
     logger.debug(5, '[runner] destroy')
     try {
-      await destroy('runSteps', { destroyed, client, processes, programPath, subscribers, afterDestroy })
+      await destroy('runSteps', { logger, destroyed, client, processes, programPath, subscribers, afterDestroy })
     } catch {
       // silence is golden.
     }
@@ -184,6 +185,7 @@ export interface Variable extends DebugProtocol.Variable {
 }
 
 interface DestroyParams {
+  logger: Logger,
   client: SocketDebugClient,
   destroyed: boolean
   processes: cp.ChildProcess[],
@@ -191,7 +193,7 @@ interface DestroyParams {
   programPath: string,
   afterDestroy: () => Promise<void>,
 }
-async function destroy(origin: string, { destroyed, subscribers, processes, client, afterDestroy }: DestroyParams): Promise<void> {
+async function destroy(origin: string, { logger, destroyed, subscribers, processes, client, afterDestroy }: DestroyParams): Promise<void> {
   if (destroyed) return logger.debug('[StepsRunner] destroy already performed')
   
   logger.debug('\n')
@@ -208,6 +210,7 @@ async function destroy(origin: string, { destroyed, subscribers, processes, clie
 
 interface SetBreakpointsConfig {
   client: SocketDebugClient,
+  logger: Logger,
   programPath: string,
 }
 /**
@@ -215,7 +218,7 @@ interface SetBreakpointsConfig {
  * @param {SetBreakpointsConfig} config
  * @returns {Promise<void>} returns resolving promise when done.
  */
-async function setBreakpoints({ client, programPath }: SetBreakpointsConfig): Promise<void> {
+async function setBreakpoints({ client, logger, programPath }: SetBreakpointsConfig): Promise<void> {
   const programCode = await fs.promises.readFile(programPath, 'utf-8')
   const lines = programCode.split('\n').length
 
@@ -245,10 +248,11 @@ async function setBreakpoints({ client, programPath }: SetBreakpointsConfig): Pr
 /**
  * Most important part is registering the `onTerminated` event which allows to end steps crawling
  * The other registered events are only for debugging purpose
+ * @param {Logger} logger
  * @param {SocketDebugClient} client
  * @param {() => void} onTerminated
  */
-const registerEvents = (client: SocketDebugClient, onTerminated: () => void): void => {
+const registerEvents = (logger: Logger, client: SocketDebugClient, onTerminated: () => void): void => {
   client.onContinued((event) => logger.debug('[Event] Continued', event))
   client.onExited((event) => {
     logger.debug('[Event] Exited', event.exitCode)
@@ -281,9 +285,9 @@ interface SetSnapshotAndStepInParams {
 async function setSnapshotAndStepIn({ context, acc, filePaths, threadId }: SetSnapshotAndStepInParams): Promise<void> {
   const i = acc.previous === null ? 1 : acc.steps.length + 2
   try {
-    logger.debug('Execute steps', i)
+    context.logger.debug('Execute steps', i)
     const snapshot = await getSnapshot({ context, filePaths, threadId })
-    logger.dir({ snapshot }, { colors: true, depth: 10 })
+    context.logger.dir({ snapshot }, { colors: true, depth: 10 })
 
     if (snapshot.stackFrames.length > 0) {
       const diff = getDiff(acc.previous, snapshot)
@@ -304,7 +308,7 @@ async function setSnapshotAndStepIn({ context, acc, filePaths, threadId }: SetSn
       ? await context.client.stepIn({ threadId, granularity: 'instruction' })
       : await context.client.stepOut({ threadId, granularity: 'instruction' })
   } catch (error) {
-    logger.debug('Failed at step', i, error)
+    context.logger.debug('Failed at step', i, error)
   }
 }
 
@@ -321,7 +325,7 @@ interface GetSnapshotParams {
 }
 async function getSnapshot({ context, filePaths, threadId }: GetSnapshotParams): Promise<StepSnapshot> {
   const result = await context.client.stackTrace({ threadId });
-  logger.dir({ filePaths })
+  context.logger.dir({ filePaths })
   const stackFrames = await Promise.all(
     result.stackFrames
       .filter(isStackFrameOfSourceFile(filePaths))
@@ -376,7 +380,7 @@ async function getVariable({ context, maxDepth, variable }: GetVariableParams, c
     const variables = await Promise.all(result.variables.map((variable) => getVariable({ context, variable, maxDepth }, currentDepth + 1)))
     return { ...variable, variables }
   } catch (error) {
-    logger.dir({ variable, error })
+    context.logger.dir({ variable, error })
     return { ...variable, variables: [] }
   }
 }

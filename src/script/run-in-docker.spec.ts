@@ -1,6 +1,6 @@
-import { callScript } from './call-script'
+import { runScript } from './run-in-docker'
 import { applyPatches, Patch, enablePatches } from 'immer'
-import { Steps, StepSnapshot } from './run-steps/runner'
+import { Steps, StepSnapshot } from '../use-cases/run-debug-steps/runner'
 
 enablePatches()
 
@@ -21,7 +21,7 @@ describe('callScript()', () => {
     './samples/python/hello_world.py',
     // './samples/php/hello_world.php',
   ])('should match snapshot for %s', async (fileRelativePath) => {
-    const stringified = await callScript(fileRelativePath, 'off')
+    const stringified = await runScript(fileRelativePath, 'off')
     const steps = JSON.parse(stringified) as Patch[][]
     const result = reconstructResultFromSteps(steps)
     expect(result).toMatchSnapshot()

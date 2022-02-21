@@ -12,5 +12,5 @@ RUN pip install debugpy
 ENV ROOT=/usr/project
 WORKDIR ${ROOT}
 
-ENTRYPOINT ["node", "./out/script.js"]
+ENTRYPOINT ["node", "./out/script/run-steps.js"]
 CMD [""]

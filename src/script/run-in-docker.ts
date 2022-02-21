@@ -1,17 +1,17 @@
 // @ts-check
 import path from 'path'
 import cp from 'child_process'
-import { logger, LoggerLevel } from './logger'
-import { LanguageExtension, toLanguageExtension } from './run-steps/factory'
+import { logger, LoggerLevel } from '../lib/logger'
+import { LanguageExtension, toLanguageExtension } from '../use-cases/run-debug-steps/factory'
 
 
 /**
- * Call script
+ * Run script that executes all the debug steps and returns the result as stdout
  * @param {string} mainFilePath path to main file of the project to debug
  * @param {LoggerLevel} [logLevel]
  * @returns {Promise<string>} stringified JSON
  */
-export async function callScript(mainFilePath: string, logLevel: LoggerLevel = 'off'): Promise<string> {
+export async function runScript(mainFilePath: string, logLevel: LoggerLevel = 'off'): Promise<string> {
   const fileExtension = toLanguageExtension(path.extname(mainFilePath))
   const docker = dockerRunConfigs[fileExtension]
   if (!docker) throw new Error(`Unknown extension "${fileExtension}". Accepted: "${Object.keys(dockerRunConfigs).join('", "')}"`)

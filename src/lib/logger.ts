@@ -8,6 +8,7 @@ export type LoggerLevel = keyof typeof levels
 
 let level: LoggerLevel = (levels as any)[process.env.LOG_LEVEL as string] || 'off'
 
+export type Logger = typeof logger
 export const logger = {
   get level() { return level },
   info: (...args: any[]) => void (level !== levels.off && console.info(...args)),
