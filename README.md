@@ -10,6 +10,7 @@
 
 ```bash
 # Build the app
+npm install
 npm run build:ts
 
 # Unzip lldb (for C/C++ only)
