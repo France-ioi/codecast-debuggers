@@ -9,7 +9,7 @@ export const runStepsWithPHPDebugger = makeRunner({
   connect: (params) => connect(params),
 })
 
-const connect: MakeRunnerConfig['connect'] = async ({ logLevel, processes, programPath, beforeInitialize, subscribers }) => {
+const connect: MakeRunnerConfig['connect'] = async ({ logLevel, processes, programPath, beforeInitialize }) => {
   const language = 'PHP'
   const dap = {
     host: 'localhost',

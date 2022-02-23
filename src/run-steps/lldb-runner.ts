@@ -1,5 +1,5 @@
 import cp from 'child_process'
-import { LogLevel, SocketDebugClient } from 'node-debugprotocol-client'
+import { SocketDebugClient } from 'node-debugprotocol-client'
 import fs from 'fs'
 import path from 'path'
 import { DebugProtocol } from 'vscode-debugprotocol'
