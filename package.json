@@ -8,7 +8,8 @@
     "build:lldb": "docker build -f ./LLDB_Dockerfile . -t lldb-debugger",
     "build:php": "docker build -f ./PHP_Dockerfile . -t php-debugger",
     "build:python": "docker build -f ./Python_Dockerfile . -t python-debugger",
-    "debug": "node debug.mjs"
+    "debug": "node debug.mjs",
+    "lint": "eslint src"
   },
   "author": "",
   "license": "ISC",
@@ -18,6 +19,9 @@
   },
   "devDependencies": {
     "@types/node": "^17.0.17",
+    "@typescript-eslint/eslint-plugin": "^5.12.0",
+    "@typescript-eslint/parser": "^5.12.0",
+    "eslint": "^8.9.0",
     "ts-node": "^10.4.0",
     "typescript": "^4.5.4",
     "vscode-debugprotocol": "^1.50.1"
