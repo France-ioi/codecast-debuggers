@@ -2,7 +2,7 @@
   "name": "codecast-debuggers",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "out/call-script.js",
   "scripts": {
     "build:ts": "tsc",
     "build:lldb": "docker build -f ./LLDB_Dockerfile . -t lldb-debugger",
