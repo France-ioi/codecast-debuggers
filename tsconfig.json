@@ -1,7 +1,6 @@
 {
   "compileOnSave": false,
   "compilerOptions": {
-    "baseUrl": "./",
     "outDir": "./out",
     "sourceMap": true,
     "declaration": false,
@@ -18,12 +17,6 @@
     "lib": [
       "es2018"
     ],
-    "paths": {
-      "core": [
-        "dist/core/core",
-        "dist/core"
-      ]
-    },
 
     // compiler linter checks
     "noFallthroughCasesInSwitch": true,
