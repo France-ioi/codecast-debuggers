@@ -1,5 +1,5 @@
 import { callScript } from './call-script';
-import { applyPatches, Patch, enablePatches } from 'immer';
+import { applyPatches, enablePatches } from 'immer';
 import { Steps, StepSnapshot } from './run-steps/runner';
 
 enablePatches();
@@ -22,7 +22,7 @@ describe('callScript()', () => {
     // './samples/php/hello_world.php',
   ])('should match snapshot for %s', async fileRelativePath => {
     const stringified = await callScript(fileRelativePath, 'off');
-    const steps = JSON.parse(stringified) as Patch[][];
+    const steps = JSON.parse(stringified) as Steps;
     const result = reconstructResultFromSteps(steps);
     expect(result).toMatchSnapshot();
   });
