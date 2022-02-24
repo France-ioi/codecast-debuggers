@@ -1,9 +1,13 @@
 import cp from 'child_process';
 import fs from 'fs';
 import path from 'path';
+import { getDiff, applyDiff } from 'recursive-diff';
+import produce, { Patch, enablePatches } from 'immer';
 import { LogLevel, SocketDebugClient, Unsubscribable } from 'node-debugprotocol-client';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { logger } from '../logger';
+
+enablePatches();
 
 export interface MakeRunnerConfig {
   /**
@@ -71,10 +75,13 @@ export const makeRunner = ({
   canDigVariable = (): boolean => true,
 }: MakeRunnerConfig): Runner => {
   const destroyed = false;
-  const stepsAcc: Steps = [];
+  const acc: StepsAcc = {
+    previous: {},
+    steps: [],
+  };
   let resolveSteps: () => void = () => {};
-  const steps = new Promise<Steps>(resolve => {
-    resolveSteps = (): void => resolve(stepsAcc);
+  const steps = new Promise<StepsAcc>(resolve => {
+    resolveSteps = (): void => resolve(acc);
   });
   return async (options: RunnerOptions) => {
     const processes: cp.ChildProcess[] = [];
@@ -119,7 +126,7 @@ export const makeRunner = ({
       if (!reasons.includes(stoppedEvent.reason) || typeof stoppedEvent.threadId !== 'number') return;
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
       setSnapshotAndStepIn({
-        stepsAcc,
+        acc,
         filePaths: [ options.main, ...options.files ].map(file => path.resolve(process.cwd(), file.relativePath)),
         context: { client, canDigScope, canDigVariable },
         threadId: stoppedEvent.threadId,
@@ -136,11 +143,7 @@ export const makeRunner = ({
 
     logger.debug(4, '[runner] await steps');
     const result = await steps;
-    const filtered = result.map(snapshot => ({
-      ...snapshot,
-      stackFrames: snapshot.stackFrames.filter(frame => frame.source?.path === programPath),
-    })).filter(({ stackFrames }) => stackFrames.length > 0);
-    logger.dir({ steps: filtered }, { colors: true, depth: 20 });
+    logger.dir({ steps }, { colors: true, depth: 20 });
 
     logger.debug(5, '[runner] destroy');
     try {
@@ -150,10 +153,23 @@ export const makeRunner = ({
     }
 
     logger.debug(6, '[runner] return result');
-    return result;
+    return result.steps;
   };
 };
-export type Steps = StepSnapshot[];
+
+export type Step = Patch[];
+export type Steps = Step[];
+
+export interface StepsAcc {
+  /**
+   * previous snapshot, `{}` only at first step
+   */
+  previous: Partial<StepSnapshot>,
+  /**
+   * A step is a list of patches computed from previous step and *not* from start
+   */
+  steps: Steps, // Patches _per step based on previous step_
+}
 export interface StepSnapshot {
   stackFrames: StackFrame[],
 }
@@ -254,7 +270,7 @@ interface SetSnapshotAndStepInParams {
   /**
    * Accumulator to push steps to. Must be an original (not cloned) mutable array
    */
-  stepsAcc: Steps,
+  acc: StepsAcc,
   /**
    * absolute paths
    */
@@ -262,13 +278,28 @@ interface SetSnapshotAndStepInParams {
   context: RunStepContext,
   threadId: GetSnapshotParams['threadId'],
 }
-async function setSnapshotAndStepIn({ context, stepsAcc, filePaths, threadId }: SetSnapshotAndStepInParams): Promise<void> {
-  const i = stepsAcc.length;
+async function setSnapshotAndStepIn({ context, acc, filePaths, threadId }: SetSnapshotAndStepInParams): Promise<void> {
+  const i = acc.steps.length + 1;
   try {
     logger.debug('Execute steps', i);
     const snapshot = await getSnapshot({ context, filePaths, threadId });
     logger.dir({ snapshot }, { colors: true, depth: 10 });
-    if (snapshot.stackFrames.length > 0) stepsAcc.push(snapshot);
+
+    if (snapshot.stackFrames.length > 0) {
+      const diff = getDiff(acc.previous, snapshot);
+      /**
+       * Computing the patches is not very straighforward:
+       * 1. Compute the diff between previous & current snapshot using recursive-diff because immer doesn't do that
+       * 2. Apply that diff to the ImmerJS draft to extract patches under ImmerJS formats
+       */
+      produce(
+        acc.previous,
+        draft => void applyDiff(draft, diff),
+        patches => void acc.steps.push(patches),
+      );
+      acc.previous = snapshot; // set base for next step
+    }
+
     snapshot.stackFrames.some(isStackFrameOfSourceFile(filePaths))
       ? await context.client.stepIn({ threadId, granularity: 'instruction' })
       : await context.client.stepOut({ threadId, granularity: 'instruction' });

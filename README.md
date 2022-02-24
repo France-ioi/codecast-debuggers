@@ -28,6 +28,8 @@ npm run build:python # Python
 
 ## Usage
 
+### CLI
+
 ```bash
 npm run debug ./path/to/file(.c|.cpp|.php|.py)
 
@@ -37,6 +39,53 @@ npm run debug ./samples/cpp/hello_world.cpp # For C++
 npm run debug ./samples/php/hello_world.php # For PHP
 npm run debug ./samples/python/hello_world.py # For Python
 ```
+
+### Programmatical
+
+```ts
+import { callScript } from 'codecast-debuggers' // if package is published :shrug:
+
+callScript(filePath).then(rawJSON => {
+  const steps = JSON.parse(rawJSON) as Steps
+  // …
+}).catch(error => {
+  // silence is golden.
+});
+```
+
+### Reconstruct snapshot of each step from patches
+
+```ts
+// Produced result:
+import { type Patch, applyPatches, enablePatches } from 'immer'
+type Step = Patch[] // a step is a list of patch to apply
+
+// This is the result you obtain after calling the script
+type Result = Step[]
+
+// The step snapshot type represents a step in its constructed (not patched) form
+type StepSnapshot = {
+  stackFrames: Array<DebugProtocol.StackFrame & {
+    scopes: Array<DebugProtocol.Scope & {
+      variables: Array<DebugProtocol.Variable & {
+        variables: Array<DebugProtocol.Variable & …> // recursive type
+      }>
+    }>
+  }>,
+}
+
+enablePatches();
+function reconstructSnapshotsFromSteps(steps: Step[]): StepSnapshot[] {
+  return steps.reduce((acc, patches) => {
+    const previous = acc[acc.length-1] ?? {};
+    const snapshot = applyPatches(previous, patches) as StepSnapshot;
+    acc.push(snapshot);
+    return acc;
+  }, [] as StepSnapshot[]);
+}
+```
+
+---
 
 ## Re-install LLDB debug adapter server (C/C++ debug adapter)
 
