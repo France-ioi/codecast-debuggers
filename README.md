@@ -68,7 +68,7 @@ type StepSnapshot = {
   stackFrames: Array<DebugProtocol.StackFrame & {
     scopes: Array<DebugProtocol.Scope & {
       variables: Array<DebugProtocol.Variable & {
-        variables: DebugProtocol.Variable & … // recursive type
+        variables: Array<DebugProtocol.Variable & …> // recursive type
       }>
     }>
   }>,
