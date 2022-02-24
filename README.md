@@ -45,11 +45,11 @@ npm run debug ./samples/python/hello_world.py # For Python
 ```ts
 import { callScript } from 'codecast-debuggers' // if package is published :shrug:
 
-callScript(filePath, 'off').then(rawJSON => {
+callScript(filePath).then(rawJSON => {
   const steps = JSON.parse(rawJSON) as Steps
   // …
 }).catch(error => {
-  // handle that
+  // silence is golden.
 });
 ```
 
