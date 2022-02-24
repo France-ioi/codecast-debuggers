@@ -9,8 +9,8 @@
 ## Install
 
 ```bash
-# Build the app
-npm run build:ts
+npm clean-install # install dependencies from package-lock.json
+npm run build:ts # Build the project
 
 # Unzip lldb (for C/C++ only)
 unzip ./vscode-lldb/lldb.zip -d ./vscode-lldb/
