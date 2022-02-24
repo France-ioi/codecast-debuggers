@@ -162,12 +162,11 @@ export type Steps = Step[];
 
 export interface StepsAcc {
   /**
-   * previous snapshot, `null` only at first step (step 0)
+   * previous snapshot, `{}` only at first step
    */
   previous: Partial<StepSnapshot>,
   /**
-   * Patch list per step
-   * Each patch list is computed from previous step and *not* from start.
+   * A step is a list of patches computed from previous step and *not* from start
    */
   steps: Steps, // Patches _per step based on previous step_
 }
@@ -280,7 +279,7 @@ interface SetSnapshotAndStepInParams {
   threadId: GetSnapshotParams['threadId'],
 }
 async function setSnapshotAndStepIn({ context, acc, filePaths, threadId }: SetSnapshotAndStepInParams): Promise<void> {
-  const i = acc.previous === null ? 1 : acc.steps.length + 2;
+  const i = acc.steps.length + 1;
   try {
     logger.debug('Execute steps', i);
     const snapshot = await getSnapshot({ context, filePaths, threadId });
