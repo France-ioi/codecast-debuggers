@@ -1,9 +1,13 @@
-import cp from 'child_process'
-import fs from 'fs'
-import path from 'path'
-import { LogLevel, SocketDebugClient, Unsubscribable } from 'node-debugprotocol-client'
-import { DebugProtocol } from 'vscode-debugprotocol'
-import { logger } from '../logger'
+import cp from 'child_process';
+import fs from 'fs';
+import path from 'path';
+import { getDiff, applyDiff } from 'recursive-diff';
+import produce, { Patch, enablePatches } from 'immer';
+import { LogLevel, SocketDebugClient, Unsubscribable } from 'node-debugprotocol-client';
+import { DebugProtocol } from 'vscode-debugprotocol';
+import { logger } from '../logger';
+
+enablePatches();
 
 export interface MakeRunnerConfig {
   /**
@@ -17,24 +21,24 @@ export interface MakeRunnerConfig {
     programPath: string,
     logLevel: LogLevel,
     beforeInitialize: (client: SocketDebugClient) => void,
-  }) => Promise<{ client: SocketDebugClient }>
+  }) => Promise<{ client: SocketDebugClient }>,
 
   /**
    * Predicates to determine whether to keep a variable in the list and retrieve its details.
    * This predicate is injected to allow customization per language.
    */
-  canDigScope?: RunStepContext['canDigScope']
+  canDigScope?: RunStepContext['canDigScope'],
   /**
    * Predicates to determine whether to keep a variable in the list and retrieve its details.
    * This predicate is injected to allow customization per language
    */
-  canDigVariable?: RunStepContext['canDigVariable']
+  canDigVariable?: RunStepContext['canDigVariable'],
 
   /**
    * For some languages, extra steps are required to clean up the env.
    * For instance, for compiled languages, the runner will removed compiled files.
    */
-  afterDestroy?: () => Promise<void>
+  afterDestroy?: () => Promise<void>,
 }
 interface File {
   /**
@@ -43,8 +47,8 @@ interface File {
   relativePath: string,
 }
 export interface RunnerOptions {
-  main: File
-  files: Array<File>
+  main: File,
+  files: Array<File>,
   logLevel?: 'On' | 'Off',
 }
 
@@ -57,7 +61,7 @@ interface RunStepContext {
   canDigScope: (scope: DebugProtocol.Scope) => boolean,
 }
 
-export type Runner = (options: RunnerOptions) => Promise<Steps>
+export type Runner = (options: RunnerOptions) => Promise<Steps>;
 
 /**
  * Used by a factory to create a runner per debugger based on the language
@@ -66,20 +70,23 @@ export type Runner = (options: RunnerOptions) => Promise<Steps>
  */
 export const makeRunner = ({
   connect,
-  afterDestroy = Promise.resolve,
-  canDigScope = () => true,
-  canDigVariable = () => true,
+  afterDestroy = (): Promise<void> => Promise.resolve(),
+  canDigScope = (): boolean => true,
+  canDigVariable = (): boolean => true,
 }: MakeRunnerConfig): Runner => {
-  let destroyed = false
-  const stepsAcc: Steps = []
-  let resolveSteps: () => void = () => {}
-  const steps = new Promise<Steps>((resolve) => {
-    resolveSteps = () => resolve(stepsAcc)
-  })
+  const destroyed = false;
+  const acc: StepsAcc = {
+    previous: {},
+    steps: [],
+  };
+  let resolveSteps: () => void = () => {};
+  const steps = new Promise<StepsAcc>(resolve => {
+    resolveSteps = (): void => resolve(acc);
+  });
   return async (options: RunnerOptions) => {
-    const processes: cp.ChildProcess[] = []
-    const subscribers: Unsubscribable[] = []
-    const programPath = path.resolve(process.cwd(), options.main.relativePath)
+    const processes: cp.ChildProcess[] = [];
+    const subscribers: Unsubscribable[] = [];
+    const programPath = path.resolve(process.cwd(), options.main.relativePath);
 
     /**
      * Overview:
@@ -104,89 +111,99 @@ export const makeRunner = ({
      *    - return the accumulated steps.
      */
 
-    logger.debug(1, '[runner] connect()')
+    logger.debug(1, '[runner] connect()');
     const { client } = await connect({
       processes,
       subscribers,
       programPath,
       logLevel: LogLevel[options.logLevel ?? 'Off'],
-      beforeInitialize: (client) => registerEvents(client, resolveSteps),
-    })
+      beforeInitialize: client => registerEvents(client, resolveSteps),
+    });
 
-    const subscriber = client.onStopped(async (stoppedEvent) => {
+    const subscriber = client.onStopped(stoppedEvent => {
       logger.debug('[Event] Stopped', stoppedEvent);
-      const reasons = ['breakpoint', 'step']
-      if (!reasons.includes(stoppedEvent.reason) || typeof stoppedEvent.threadId !== 'number') return
+      const reasons = [ 'breakpoint', 'step' ];
+      if (!reasons.includes(stoppedEvent.reason) || typeof stoppedEvent.threadId !== 'number') return;
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
       setSnapshotAndStepIn({
-        stepsAcc,
-        filePaths: [options.main, ...options.files].map((file) => path.resolve(process.cwd(), file.relativePath)),
+        acc,
+        filePaths: [ options.main, ...options.files ].map(file => path.resolve(process.cwd(), file.relativePath)),
         context: { client, canDigScope, canDigVariable },
         threadId: stoppedEvent.threadId,
-      })
-    })
-    subscribers.push(subscriber)
+      });
+    });
+    subscribers.push(subscriber);
 
-    logger.debug(2, '[runner] setBreakpoints()')
-    await setBreakpoints({ client, programPath })
+    logger.debug(2, '[runner] setBreakpoints()');
+    await setBreakpoints({ client, programPath });
 
-    logger.debug(3, '[runner] Configuration Done')
+    logger.debug(3, '[runner] Configuration Done');
     // send 'configuration done' (in some debuggers this will trigger 'continue' if attach was awaited)
-    await client.configurationDone({})
+    await client.configurationDone({});
 
-    logger.debug(4, '[runner] await steps')
-    const result = await steps
-    const filtered = result.map((snapshot) => ({
-      ...snapshot,
-      stackFrames: snapshot.stackFrames.filter((frame) => frame.source?.path === programPath),
-    })).filter(({ stackFrames }) => stackFrames.length > 0)
-    logger.dir({ steps: filtered }, { colors: true, depth: 20 })
+    logger.debug(4, '[runner] await steps');
+    const result = await steps;
+    logger.dir({ steps }, { colors: true, depth: 20 });
 
-    logger.debug(5, '[runner] destroy')
+    logger.debug(5, '[runner] destroy');
     try {
-      await destroy('runSteps', { destroyed, client, processes, programPath, subscribers, afterDestroy })
+      await destroy('runSteps', { destroyed, client, processes, programPath, subscribers, afterDestroy });
     } catch {
       // silence is golden.
     }
-    
-    logger.debug(6, '[runner] return result')
-    return result
-  }
+
+    logger.debug(6, '[runner] return result');
+    return result.steps;
+  };
+};
+
+export type Step = Patch[];
+export type Steps = Step[];
+
+export interface StepsAcc {
+  /**
+   * previous snapshot, `{}` only at first step
+   */
+  previous: Partial<StepSnapshot>,
+  /**
+   * A step is a list of patches computed from previous step and *not* from start
+   */
+  steps: Steps, // Patches _per step based on previous step_
 }
-export type Steps = StepSnapshot[]
 export interface StepSnapshot {
-  stackFrames: StackFrame[]
+  stackFrames: StackFrame[],
 }
 export interface StackFrame extends DebugProtocol.StackFrame {
-  scopes: Scope[]
+  scopes: Scope[],
 }
 export interface Scope extends DebugProtocol.Scope {
-  variables: Variable[]
+  variables: Variable[],
 }
 export interface Variable extends DebugProtocol.Variable {
-  variables: Variable[]
+  variables: Variable[],
 }
 
 interface DestroyParams {
   client: SocketDebugClient,
-  destroyed: boolean
+  destroyed: boolean,
   processes: cp.ChildProcess[],
   subscribers: Unsubscribable[],
   programPath: string,
   afterDestroy: () => Promise<void>,
 }
 async function destroy(origin: string, { destroyed, subscribers, processes, client, afterDestroy }: DestroyParams): Promise<void> {
-  if (destroyed) return logger.debug('[StepsRunner] destroy already performed')
-  
-  logger.debug('\n')
-  logger.debug(`[StepsRunner] Destroy ⋅ ${origin}`)
-  subscribers.forEach((subscriber) => subscriber.unsubscribe())
-  processes.forEach((subprocess) => {
-    if (!subprocess.killed) subprocess.kill()
-  })
-  client.disconnectAdapter()
-  await client.disconnect({}).catch(() => {/* throws if already disconnected */})
-  await afterDestroy()
-  destroyed = true
+  if (destroyed) return logger.debug('[StepsRunner] destroy already performed');
+
+  logger.debug('\n');
+  logger.debug(`[StepsRunner] Destroy ⋅ ${origin}`);
+  subscribers.forEach(subscriber => subscriber.unsubscribe());
+  processes.forEach(subprocess => {
+    if (!subprocess.killed) subprocess.kill();
+  });
+  client.disconnectAdapter();
+  await client.disconnect({}).catch(() => { /* throws if already disconnected */ });
+  await afterDestroy();
+  destroyed = true;
 }
 
 interface SetBreakpointsConfig {
@@ -199,30 +216,30 @@ interface SetBreakpointsConfig {
  * @returns {Promise<void>} returns resolving promise when done.
  */
 async function setBreakpoints({ client, programPath }: SetBreakpointsConfig): Promise<void> {
-  const programCode = await fs.promises.readFile(programPath, 'utf-8')
-  const lines = programCode.split('\n').length
+  const programCode = await fs.promises.readFile(programPath, 'utf-8');
+  const lines = programCode.split('\n').length;
 
-  logger.debug('[StepsRunner] set breakpoints')
+  logger.debug('[StepsRunner] set breakpoints');
   let response = await client.setBreakpoints({
     breakpoints: Array.from({ length: lines }, (_, i) => ({ line: i + 1 })),
     source: {
       path: programPath
     }
-  })
-  logger.debug('[StepsRunner] set breakpoints intermediate response', response)
+  });
+  logger.debug('[StepsRunner] set breakpoints intermediate response', response);
 
   const verifiedBreakpoints = response.breakpoints
-    .filter((breakpoint) => breakpoint.verified && typeof breakpoint.line === 'number')
-    .map(({ line }) => ({ line: line as number }))
+    .filter(breakpoint => breakpoint.verified && typeof breakpoint.line === 'number')
+    .map(({ line }) => ({ line: line as number }));
 
-  if (verifiedBreakpoints.length === lines) return
+  if (verifiedBreakpoints.length === lines) return;
 
   response = await client.setBreakpoints({
     breakpoints: verifiedBreakpoints,
     source: { path: programPath },
-  })
+  });
 
-  logger.debug('[StepsRunner] set breakpoints response', response)
+  logger.debug('[StepsRunner] set breakpoints response', response);
 }
 
 /**
@@ -232,47 +249,62 @@ async function setBreakpoints({ client, programPath }: SetBreakpointsConfig): Pr
  * @param {() => void} onTerminated
  */
 const registerEvents = (client: SocketDebugClient, onTerminated: () => void): void => {
-  client.onContinued((event) => logger.debug('[Event] Continued', event))
-  client.onExited((event) => {
-    logger.debug('[Event] Exited', event.exitCode)
-    if (event.exitCode === 0) onTerminated()
-  })
-  client.onOutput(({ output, ...event }) => logger.debug('[Event] Output', JSON.stringify(output), event))
-  client.onTerminated(async (event) => {
-    logger.debug('[Event] Terminated − resolve steps', event ?? '')
-    onTerminated()
+  client.onContinued(event => logger.debug('[Event] Continued', event));
+  client.onExited(event => {
+    logger.debug('[Event] Exited', event.exitCode);
+    if (event.exitCode === 0) onTerminated();
+  });
+  client.onOutput(({ output, ...event }) => logger.debug('[Event] Output', JSON.stringify(output), event));
+  client.onTerminated(event => {
+    logger.debug('[Event] Terminated − resolve steps', event ?? '');
+    onTerminated();
     client.disconnectAdapter();
   });
 
-  client.onThread((thread) => {
-    logger.debug('[Event] Thread', thread)
-  })
-}
+  client.onThread(thread => {
+    logger.debug('[Event] Thread', thread);
+  });
+};
 
 interface SetSnapshotAndStepInParams {
   /**
    * Accumulator to push steps to. Must be an original (not cloned) mutable array
    */
-  stepsAcc: Steps,
+  acc: StepsAcc,
   /**
    * absolute paths
    */
   filePaths: string[],
-  context: RunStepContext
+  context: RunStepContext,
   threadId: GetSnapshotParams['threadId'],
 }
-async function setSnapshotAndStepIn({ context, stepsAcc, filePaths, threadId }: SetSnapshotAndStepInParams): Promise<void> {
-  const i = stepsAcc.length
+async function setSnapshotAndStepIn({ context, acc, filePaths, threadId }: SetSnapshotAndStepInParams): Promise<void> {
+  const i = acc.steps.length + 1;
   try {
-    logger.debug('Execute steps', i)
-    const snapshot = await getSnapshot({ context, filePaths, threadId })
-    logger.dir({ snapshot }, { colors: true, depth: 10 })
-    if (snapshot.stackFrames.length > 0) stepsAcc.push(snapshot)
+    logger.debug('Execute steps', i);
+    const snapshot = await getSnapshot({ context, filePaths, threadId });
+    logger.dir({ snapshot }, { colors: true, depth: 10 });
+
+    if (snapshot.stackFrames.length > 0) {
+      const diff = getDiff(acc.previous, snapshot);
+      /**
+       * Computing the patches is not very straighforward:
+       * 1. Compute the diff between previous & current snapshot using recursive-diff because immer doesn't do that
+       * 2. Apply that diff to the ImmerJS draft to extract patches under ImmerJS formats
+       */
+      produce(
+        acc.previous,
+        draft => void applyDiff(draft, diff),
+        patches => void acc.steps.push(patches),
+      );
+      acc.previous = snapshot; // set base for next step
+    }
+
     snapshot.stackFrames.some(isStackFrameOfSourceFile(filePaths))
       ? await context.client.stepIn({ threadId, granularity: 'instruction' })
-      : await context.client.stepOut({ threadId, granularity: 'instruction' })
+      : await context.client.stepOut({ threadId, granularity: 'instruction' });
   } catch (error) {
-    logger.debug('Failed at step', i, error)
+    logger.debug('Failed at step', i, error);
   }
 }
 
@@ -285,17 +317,17 @@ interface GetSnapshotParams {
   /**
    * the threadId from which we can extract debug data. Provided in the `onStopped` event
    */
-  threadId: number
+  threadId: number,
 }
 async function getSnapshot({ context, filePaths, threadId }: GetSnapshotParams): Promise<StepSnapshot> {
   const result = await context.client.stackTrace({ threadId });
-  logger.dir({ filePaths })
+  logger.dir({ filePaths });
   const stackFrames = await Promise.all(
     result.stackFrames
       .filter(isStackFrameOfSourceFile(filePaths))
-      .map((stackFrame) => getStackFrame({ context, stackFrame }))
-  )
-  return { stackFrames }
+      .map(stackFrame => getStackFrame({ context, stackFrame }))
+  );
+  return { stackFrames };
 }
 
 interface GetStackFrameParams {
@@ -303,9 +335,9 @@ interface GetStackFrameParams {
   context: RunStepContext,
 }
 async function getStackFrame({ context, stackFrame }: GetStackFrameParams): Promise<StackFrame> {
-  const result = await context.client.scopes({ frameId: stackFrame.id })
-  const scopes = await Promise.all(result.scopes.map((scope) => getScope({ context, scope })))
-  return { ...stackFrame, scopes }
+  const result = await context.client.scopes({ frameId: stackFrame.id });
+  const scopes = await Promise.all(result.scopes.map(scope => getScope({ context, scope })));
+  return { ...stackFrame, scopes };
 }
 
 interface GetScopeParams {
@@ -313,16 +345,16 @@ interface GetScopeParams {
   context: RunStepContext,
 }
 async function getScope({ context, scope }: GetScopeParams): Promise<Scope> {
-  if (!context.canDigScope(scope)) return { ...scope, variables: [] }
-  const result = await context.client.variables({ variablesReference: scope.variablesReference })
-  const isLocalScope = scope.name.startsWith('Local')
-  const variablesMaxDepth = isLocalScope ? 3 : 0
-  const variables = await Promise.all(result.variables.filter(context.canDigVariable).map((variable) => getVariable({
+  if (!context.canDigScope(scope)) return { ...scope, variables: [] };
+  const result = await context.client.variables({ variablesReference: scope.variablesReference });
+  const isLocalScope = scope.name.startsWith('Local');
+  const variablesMaxDepth = isLocalScope ? 3 : 0;
+  const variables = await Promise.all(result.variables.filter(context.canDigVariable).map(variable => getVariable({
     context,
     variable,
     maxDepth: variablesMaxDepth,
-  })))
-  return { ...scope, variables }
+  })));
+  return { ...scope, variables };
 }
 
 interface GetVariableParams {
@@ -337,20 +369,19 @@ interface GetVariableParams {
   maxDepth: number,
 }
 async function getVariable({ context, maxDepth, variable }: GetVariableParams, currentDepth = 0): Promise<Variable> {
-  const shouldGetSubVariables = variable.variablesReference > 0 && currentDepth <= maxDepth
-  if (!shouldGetSubVariables) return { ...variable, variables: [] }
+  const shouldGetSubVariables = variable.variablesReference > 0 && currentDepth <= maxDepth;
+  if (!shouldGetSubVariables) return { ...variable, variables: [] };
   try {
-    const result = await context.client.variables({ variablesReference: variable.variablesReference })
-    const variables = await Promise.all(result.variables.map((variable) => getVariable({ context, variable, maxDepth }, currentDepth + 1)))
-    return { ...variable, variables }
+    const result = await context.client.variables({ variablesReference: variable.variablesReference });
+    const variables = await Promise.all(result.variables.map(variable => getVariable({ context, variable, maxDepth }, currentDepth + 1)));
+    return { ...variable, variables };
   } catch (error) {
-    logger.dir({ variable, error })
-    return { ...variable, variables: [] }
+    logger.dir({ variable, error });
+    return { ...variable, variables: [] };
   }
 }
 
 function isStackFrameOfSourceFile(fileAbsolutePaths: string[]) {
-  return (stackFrame: DebugProtocol.StackFrame) => {
-    return !!stackFrame.source && fileAbsolutePaths.some((filePath) => filePath === stackFrame.source?.path)
-  }
+  return (stackFrame: DebugProtocol.StackFrame): boolean =>
+    !!stackFrame.source && fileAbsolutePaths.some(filePath => filePath === stackFrame.source?.path);
 }
