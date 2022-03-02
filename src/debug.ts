@@ -8,7 +8,7 @@ if (!filePath || !fs.existsSync(filePath)) throw new Error('File not found. Expe
 callScript(filePath, 'off').then(rawJSON => {
   try {
     logger.dir(JSON.parse(rawJSON), { colors: true, depth: 9 });
-    fs.writeFileSync('./results/tmp.json', rawJSON, 'utf-8');
+    fs.writeFileSync(__dirname + '/../results/tmp.json', rawJSON, 'utf-8');
   } catch {
     logger.info('could not parse JSON', rawJSON);
   }
