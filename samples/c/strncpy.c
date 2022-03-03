@@ -5,14 +5,14 @@
 #include <stdio.h>
 #include <string.h>
 
- char *strcpy(char *dest, const char *src) {
+char *strcpy(char *dest, const char *src) {
    char *(*_builtin_strcpy)(char *, const char *) = dlsym(RTLD_NEXT, "strcpy");
    char* _return_value = _builtin_strcpy(dest, src);
 
    return _return_value;
 }
 
- char *strncpy(char *dest, const char *src, size_t n) {
+char *strncpy(char *dest, const char *src, size_t n) {
    char *(*_builtin_strncpy)(char *, const char *, size_t) = dlsym(RTLD_NEXT, "strncpy");
    char* _return_value = _builtin_strncpy(dest, src, n);
 
