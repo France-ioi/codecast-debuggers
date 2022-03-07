@@ -11,7 +11,7 @@
     "debug": "node out/debug.js",
     "lint": "eslint src",
     "pretest": "npm run build:ts",
-    "test": "jest src/"
+    "test": "jest src"
   },
   "author": "",
   "license": "ISC",
