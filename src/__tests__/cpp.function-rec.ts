@@ -150,6 +150,7 @@ describe('samples function_rec.cpp', () => {
                 name: 'n',
                 type: 'int',
                 value: '3',
+                memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
                 variables: []
               }
@@ -197,6 +198,7 @@ describe('samples function_rec.cpp', () => {
                 name: 'n',
                 type: 'int',
                 value: '3',
+                memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
                 variables: []
               }
@@ -244,6 +246,7 @@ describe('samples function_rec.cpp', () => {
                 name: 'n',
                 type: 'int',
                 value: '2',
+                memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
                 variables: []
               }
@@ -271,6 +274,7 @@ describe('samples function_rec.cpp', () => {
                 name: 'n',
                 type: 'int',
                 value: '3',
+                memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
                 variables: []
               }
@@ -318,6 +322,7 @@ describe('samples function_rec.cpp', () => {
                 name: 'n',
                 type: 'int',
                 value: '2',
+                memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
                 variables: []
               }
@@ -345,6 +350,7 @@ describe('samples function_rec.cpp', () => {
                 name: 'n',
                 type: 'int',
                 value: '3',
+                memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
                 variables: []
               }
@@ -392,6 +398,7 @@ describe('samples function_rec.cpp', () => {
                 name: 'n',
                 type: 'int',
                 value: '1',
+                memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
                 variables: []
               }
@@ -419,6 +426,7 @@ describe('samples function_rec.cpp', () => {
                 name: 'n',
                 type: 'int',
                 value: '2',
+                memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
                 variables: []
               }
@@ -446,6 +454,7 @@ describe('samples function_rec.cpp', () => {
                 name: 'n',
                 type: 'int',
                 value: '3',
+                memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
                 variables: []
               }
@@ -493,6 +502,7 @@ describe('samples function_rec.cpp', () => {
                 name: 'n',
                 type: 'int',
                 value: '1',
+                memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
                 variables: []
               }
@@ -520,6 +530,7 @@ describe('samples function_rec.cpp', () => {
                 name: 'n',
                 type: 'int',
                 value: '2',
+                memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
                 variables: []
               }
@@ -547,6 +558,7 @@ describe('samples function_rec.cpp', () => {
                 name: 'n',
                 type: 'int',
                 value: '3',
+                memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
                 variables: []
               }
@@ -594,6 +606,7 @@ describe('samples function_rec.cpp', () => {
                 name: 'n',
                 type: 'int',
                 value: '1',
+                memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
                 variables: []
               }
@@ -621,6 +634,7 @@ describe('samples function_rec.cpp', () => {
                 name: 'n',
                 type: 'int',
                 value: '2',
+                memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
                 variables: []
               }
@@ -648,6 +662,7 @@ describe('samples function_rec.cpp', () => {
                 name: 'n',
                 type: 'int',
                 value: '3',
+                memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
                 variables: []
               }
@@ -695,6 +710,7 @@ describe('samples function_rec.cpp', () => {
                 name: 'n',
                 type: 'int',
                 value: '2',
+                memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
                 variables: []
               }
@@ -722,6 +738,7 @@ describe('samples function_rec.cpp', () => {
                 name: 'n',
                 type: 'int',
                 value: '3',
+                memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
                 variables: []
               }
@@ -769,6 +786,7 @@ describe('samples function_rec.cpp', () => {
                 name: 'n',
                 type: 'int',
                 value: '2',
+                memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
                 variables: []
               }
@@ -796,6 +814,7 @@ describe('samples function_rec.cpp', () => {
                 name: 'n',
                 type: 'int',
                 value: '3',
+                memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
                 variables: []
               }
@@ -843,6 +862,7 @@ describe('samples function_rec.cpp', () => {
                 name: 'n',
                 type: 'int',
                 value: '3',
+                memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
                 variables: []
               }
@@ -890,6 +910,7 @@ describe('samples function_rec.cpp', () => {
                 name: 'n',
                 type: 'int',
                 value: '3',
+                memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
                 variables: []
               }

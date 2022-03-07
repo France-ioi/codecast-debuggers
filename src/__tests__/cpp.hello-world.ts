@@ -66,24 +66,7 @@ describe('samples hello_world.cpp', () => {
             expensive: expect.any(Boolean),
             name: 'Local',
             variablesReference: expect.any(Number),
-            variables: [
-              {
-                evaluateName: '__initialize_p',
-                name: '__initialize_p',
-                type: 'int',
-                value: '1',
-                variablesReference: expect.any(Number),
-                variables: []
-              },
-              {
-                evaluateName: '__priority',
-                name: '__priority',
-                type: 'int',
-                value: '65535',
-                variablesReference: expect.any(Number),
-                variables: []
-              }
-            ]
+            variables: expect.arrayContaining([]),
           },
         ]),
       },
@@ -167,6 +150,7 @@ describe('samples hello_world.cpp', () => {
                 name: 'i',
                 type: 'int',
                 value: '0',
+                memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
                 variables: []
               }
@@ -196,6 +180,7 @@ describe('samples hello_world.cpp', () => {
                 name: 'i',
                 type: 'int',
                 value: '0',
+                memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
                 variables: []
               },
@@ -204,6 +189,7 @@ describe('samples hello_world.cpp', () => {
                 name: 'j',
                 type: 'int',
                 value: '0',
+                memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
                 variables: []
               }
@@ -233,6 +219,7 @@ describe('samples hello_world.cpp', () => {
                 name: 'i',
                 type: 'int',
                 value: '0',
+                memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
                 variables: []
               },
@@ -241,6 +228,7 @@ describe('samples hello_world.cpp', () => {
                 name: 'j',
                 type: 'int',
                 value: '0',
+                memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
                 variables: []
               }
@@ -270,6 +258,7 @@ describe('samples hello_world.cpp', () => {
                 name: 'i',
                 type: 'int',
                 value: '0',
+                memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
                 variables: []
               }
@@ -299,6 +288,7 @@ describe('samples hello_world.cpp', () => {
                 name: 'i',
                 type: 'int',
                 value: '1',
+                memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
                 variables: []
               },
@@ -307,6 +297,7 @@ describe('samples hello_world.cpp', () => {
                 name: 'j',
                 type: 'int',
                 value: '0',
+                memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
                 variables: []
               }
@@ -336,6 +327,7 @@ describe('samples hello_world.cpp', () => {
                 name: 'i',
                 type: 'int',
                 value: '1',
+                memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
                 variables: []
               },
@@ -344,6 +336,7 @@ describe('samples hello_world.cpp', () => {
                 name: 'j',
                 type: 'int',
                 value: '2',
+                memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
                 variables: []
               }
@@ -373,6 +366,7 @@ describe('samples hello_world.cpp', () => {
                 name: 'i',
                 type: 'int',
                 value: '1',
+                memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
                 variables: []
               }
@@ -402,6 +396,7 @@ describe('samples hello_world.cpp', () => {
                 name: 'i',
                 type: 'int',
                 value: '2',
+                memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
                 variables: []
               },
@@ -410,6 +405,7 @@ describe('samples hello_world.cpp', () => {
                 name: 'j',
                 type: 'int',
                 value: '2',
+                memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
                 variables: []
               }
@@ -439,6 +435,7 @@ describe('samples hello_world.cpp', () => {
                 name: 'i',
                 type: 'int',
                 value: '2',
+                memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
                 variables: []
               },
@@ -447,6 +444,7 @@ describe('samples hello_world.cpp', () => {
                 name: 'j',
                 type: 'int',
                 value: '4',
+                memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
                 variables: []
               }
@@ -476,6 +474,7 @@ describe('samples hello_world.cpp', () => {
                 name: 'i',
                 type: 'int',
                 value: '2',
+                memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
                 variables: []
               }
