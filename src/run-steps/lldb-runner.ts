@@ -59,6 +59,8 @@ const connect = (
   await client.initialize({
     adapterID: language,
     pathFormat: 'path',
+    supportsMemoryEvent: true,
+    supportsMemoryReferences: true,
   });
 
   const executablePath = config.compile(programPath).executablePath;
