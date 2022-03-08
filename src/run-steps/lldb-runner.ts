@@ -68,8 +68,9 @@ const connect = (
     client.onRunInTerminalRequest(({ args: [ argv, ...args ], cwd, env, kind, title }) => {
       if (!argv) throw new Error('argv must be defined');
       logger.debug('[Event] RunInTerminalRequest', { argv, args, cwd, kind, title });
+      logger.log(argv, args);
       const subprocess = cp.spawn(argv, args, {
-        stdio: 'inherit',
+        stdio: [ 'ignore', 'inherit', 'inherit' ],
         // eslint-disable-next-line @typescript-eslint/naming-convention
         env: { ...env, RUST_BACKTRACE: 'full' },
         shell: true,
@@ -91,6 +92,7 @@ const connect = (
   logger.debug(6, '[LLDB StepsRunner] launch client');
   const launched = client.launch({
     program: executablePath,
+    stdio: [ __filename, null, null ],
     ...config.launchArgs,
   } as DebugProtocol.LaunchRequestArguments);
 
@@ -110,6 +112,7 @@ async function spawnAdapterServer(dap: { host: string, port: number }, processes
   const args = [ '--liblldb', liblldb, '--port', dap.port.toString() ];
 
   await new Promise<void>(resolve => {
+    logger.debug('Spawn process ', executable, args);
     const adapter = cp.spawn(executable, args, {
       stdio: [ 'ignore', 'pipe', 'pipe' ],
       cwd: root,
@@ -143,7 +146,7 @@ const configurations: Record<Language, Configuration> = {
     },
     launchArgs: {
       initCommands: [ 'settings set target.disable-aslr false' ]
-    } as DebugProtocol.LaunchRequestArguments
+    } as DebugProtocol.LaunchRequestArguments,
   },
   cpp: {
     compile: mainFilePath => {

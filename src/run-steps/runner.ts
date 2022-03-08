@@ -6,6 +6,7 @@ import produce, { Patch, enablePatches } from 'immer';
 import { LogLevel, SocketDebugClient, Unsubscribable } from 'node-debugprotocol-client';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { logger } from '../logger';
+import {Stream} from "stream";
 
 enablePatches();
 
@@ -19,6 +20,8 @@ export interface MakeRunnerConfig {
     processes: cp.ChildProcess[],
     subscribers: Unsubscribable[],
     programPath: string,
+    inputStream: Stream|null,
+    inputPath: string,
     logLevel: LogLevel,
     beforeInitialize: (client: SocketDebugClient) => void,
   }) => Promise<{
@@ -50,6 +53,8 @@ interface File {
 }
 export interface RunnerOptions {
   main: File,
+  inputStream: Stream|null,
+  inputPath: string,
   files: Array<File>,
   logLevel?: 'On' | 'Off',
 }
@@ -118,6 +123,8 @@ export const makeRunner = ({
       processes,
       subscribers,
       programPath,
+      inputStream: options.inputStream,
+      inputPath: options.inputPath,
       logLevel: LogLevel[options.logLevel ?? 'Off'],
       beforeInitialize: client => registerEvents(client, resolveSteps),
     });
