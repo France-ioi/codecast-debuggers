@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { callScript } from '../call-script';
 import { Steps, StepSnapshot } from '../run-steps/runner';
-import { reconstructResultFromSteps } from '../reconstruct-steps';
+import { reconstructSnapshotsFromSteps } from '../reconstruct-snapshots';
 
 describe('samples memory.cpp', () => {
   let result!: StepSnapshot[];
   beforeAll(async () => {
-    const stringified = await callScript('./samples/cpp/memory.cpp', 'off');
-    result = reconstructResultFromSteps(JSON.parse(stringified) as Steps);
+    const stringified = await callScript('./samples/cpp/memory.cpp', '', 'off');
+    result = reconstructSnapshotsFromSteps(JSON.parse(stringified) as Steps);
   });
 
   it('should have a valid result', () => {

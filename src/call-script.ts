@@ -55,7 +55,12 @@ const dockerRunConfigs: Record<LanguageExtension, DockerRunConfig> = {
  * @param {LoggerLevel} logLevel
  * @returns {{ command: string, args: string[] }}
  */
-const dockerRunCommand = (docker: DockerRunConfig, mainFilePath: string, inputFilePath: string, logLevel: LoggerLevel): { command: string, args: string[] } => {
+const dockerRunCommand = (
+  docker: DockerRunConfig,
+  mainFilePath: string,
+  inputFilePath: string,
+  logLevel: LoggerLevel,
+): { command: string, args: string[] } => {
   const projectPath = path.dirname(mainFilePath);
   const command = 'docker';
   const args = [
