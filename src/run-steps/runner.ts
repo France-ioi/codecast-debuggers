@@ -6,7 +6,7 @@ import produce, { Patch, enablePatches } from 'immer';
 import { LogLevel, SocketDebugClient, Unsubscribable } from 'node-debugprotocol-client';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { logger } from '../logger';
-import {Stream} from "stream";
+import { Stream } from 'stream';
 
 enablePatches();
 
