@@ -8,18 +8,20 @@ import { LanguageExtension, toLanguageExtension } from './run-steps/factory';
 /**
  * Call script
  * @param {string} mainFilePath path to main file of the project to debug
+ * @param {string} inputFilePath path to input file of the project to debug
  * @param {LoggerLevel} [logLevel]
  * @returns {Promise<string>} stringified JSON
  */
-export function callScript(mainFilePath: string, logLevel: LoggerLevel = 'off'): Promise<string> {
+export function callScript(mainFilePath: string, inputFilePath: string, logLevel: LoggerLevel = 'off'): Promise<string> {
   const fileExtension = toLanguageExtension(path.extname(mainFilePath));
   const docker = dockerRunConfigs[fileExtension];
 
-  const { command, args } = dockerRunCommand(docker, mainFilePath, logLevel);
+  const { command, args } = dockerRunCommand(docker, mainFilePath, inputFilePath, logLevel);
 
   const begin = 'RESULT_BEGIN';
   const end = 'RESULT_END';
   logger.debug('command\n', [ command, ...args ].join(' \\\n  '));
+
   const dockerProcess = cp.spawnSync(command, args, { stdio: [ 'inherit', 'pipe', 'inherit' ] });
   const result = dockerProcess.stdout?.toString('utf-8');
 
@@ -49,10 +51,11 @@ const dockerRunConfigs: Record<LanguageExtension, DockerRunConfig> = {
  * Returns the docker run command
  * @param {DockerRunConfig} docker
  * @param {string} mainFilePath
+ * @param {string} inputFilePath
  * @param {LoggerLevel} logLevel
  * @returns {{ command: string, args: string[] }}
  */
-const dockerRunCommand = (docker: DockerRunConfig, mainFilePath: string, logLevel: LoggerLevel): { command: string, args: string[] } => {
+const dockerRunCommand = (docker: DockerRunConfig, mainFilePath: string, inputFilePath: string, logLevel: LoggerLevel): { command: string, args: string[] } => {
   const projectPath = path.dirname(mainFilePath);
   const command = 'docker';
   const args = [
@@ -67,7 +70,9 @@ const dockerRunCommand = (docker: DockerRunConfig, mainFilePath: string, logLeve
     ...toDockerMountArgs({ source: path.resolve(paths.selfRoot, projectPath), target: path.resolve(paths.dockerRoot, projectPath) }),
     docker.image,
     mainFilePath,
+    inputFilePath,
   ].filter(Boolean);
+
   return { command, args };
 };
 
