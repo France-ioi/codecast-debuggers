@@ -4,16 +4,26 @@ import { SocketDebugClient } from 'node-debugprotocol-client';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { logger } from '../logger';
 import { makeRunner, MakeRunnerConfig } from './runner';
+import {Stream} from "stream";
 
 export const runStepsWithPythonDebugger = makeRunner({
   connect: params => connect(params),
   canDigVariable: variable => {
-    const undiggableNames = [ 'special variables', '__builtins__' ];
-    return !undiggableNames.includes(variable.name);
+    const undiggableNames = [ 'special variables', 'function variables', 'class variables', '__builtins__' ];
+    if (undiggableNames.includes(variable.name)) {
+      return false;
+    }
+
+    const undiggableTypes = [ 'module' ];
+    if (variable.type && undiggableTypes.includes(variable.type)) {
+      return false;
+    }
+
+    return true;
   },
 });
 
-const connect: MakeRunnerConfig['connect'] = async ({ processes, programPath, logLevel, beforeInitialize }) => {
+const connect: MakeRunnerConfig['connect'] = async ({ processes, programPath, logLevel, beforeInitialize, inputStream }) => {
   const language = 'Python';
   const dap = {
     host: 'localhost',
@@ -21,7 +31,7 @@ const connect: MakeRunnerConfig['connect'] = async ({ processes, programPath, lo
   };
 
   logger.debug(1, '[Python StepsRunner] start adapter server');
-  await spawnDebugAdapterServer(dap, processes);
+  await spawnDebugAdapterServer(dap, processes, inputStream);
 
   logger.debug(2, '[Python StepsRunner] instantiate SocketDebugClient');
   const client = new SocketDebugClient({
@@ -66,7 +76,7 @@ const connect: MakeRunnerConfig['connect'] = async ({ processes, programPath, lo
   return { client };
 };
 
-async function spawnDebugAdapterServer(dap: { host: string, port: number }, processes: cp.ChildProcess[]): Promise<void> {
+async function spawnDebugAdapterServer(dap: { host: string, port: number }, processes: cp.ChildProcess[], inputStream: Stream|null): Promise<void> {
   const debugPyFolderPath = findDebugPyFolder();
 
   return new Promise<void>(resolve => {
@@ -77,7 +87,7 @@ async function spawnDebugAdapterServer(dap: { host: string, port: number }, proc
       '--port',
       dap.port.toString(),
       '--log-stderr',
-    ], { stdio: [ 'ignore', 'pipe', 'pipe' ] });
+    ], { stdio: [ (inputStream) ? inputStream : 'ignore', 'pipe', 'pipe' ] });
     processes.push(subprocess);
 
     subprocess.on('error', error => logger.error('Server error:', error));

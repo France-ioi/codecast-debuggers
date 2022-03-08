@@ -6,6 +6,7 @@ import produce, { Patch, enablePatches } from 'immer';
 import { LogLevel, SocketDebugClient, Unsubscribable } from 'node-debugprotocol-client';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { logger } from '../logger';
+import {Stream} from "stream";
 
 enablePatches();
 
@@ -19,9 +20,13 @@ export interface MakeRunnerConfig {
     processes: cp.ChildProcess[],
     subscribers: Unsubscribable[],
     programPath: string,
+    inputStream: Stream|null,
+    inputPath: string,
     logLevel: LogLevel,
     beforeInitialize: (client: SocketDebugClient) => void,
-  }) => Promise<{ client: SocketDebugClient }>,
+  }) => Promise<{
+    client: SocketDebugClient,
+  }>,
 
   /**
    * Predicates to determine whether to keep a variable in the list and retrieve its details.
@@ -48,6 +53,8 @@ interface File {
 }
 export interface RunnerOptions {
   main: File,
+  inputStream: Stream|null,
+  inputPath: string,
   files: Array<File>,
   logLevel?: 'On' | 'Off',
 }
@@ -116,6 +123,8 @@ export const makeRunner = ({
       processes,
       subscribers,
       programPath,
+      inputStream: options.inputStream,
+      inputPath: options.inputPath,
       logLevel: LogLevel[options.logLevel ?? 'Off'],
       beforeInitialize: client => registerEvents(client, resolveSteps),
     });
@@ -373,7 +382,12 @@ async function getVariable({ context, maxDepth, variable }: GetVariableParams, c
   if (!shouldGetSubVariables) return { ...variable, variables: [] };
   try {
     const result = await context.client.variables({ variablesReference: variable.variablesReference });
-    const variables = await Promise.all(result.variables.map(variable => getVariable({ context, variable, maxDepth }, currentDepth + 1)));
+    const variables = await Promise.all(result.variables.filter(context.canDigVariable).map(variable => getVariable({
+      context,
+      variable,
+      maxDepth: maxDepth,
+    }, currentDepth + 1)));
+
     return { ...variable, variables };
   } catch (error) {
     logger.dir({ variable, error });
