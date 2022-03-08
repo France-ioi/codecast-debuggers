@@ -3,7 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import { logger } from './logger';
 import { languageByExtension, runSteps, toLanguageExtension } from './run-steps/factory';
-import {Stream} from "stream";
+import { Stream } from 'stream';
 
 logger.debug('process args', process.argv.slice(2));
 
@@ -72,9 +72,9 @@ async function openInputStream(inputPath: string): Promise<Stream|null> {
     inputStream.on('open', () => {
       resolve(inputStream);
     });
-    inputStream.on('error', (e) => {
+    inputStream.on('error', e => {
       reject(e);
-    })
+    });
   });
 }
 

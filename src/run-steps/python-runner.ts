@@ -4,7 +4,7 @@ import { SocketDebugClient } from 'node-debugprotocol-client';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { logger } from '../logger';
 import { makeRunner, MakeRunnerConfig } from './runner';
-import {Stream} from "stream";
+import { Stream } from 'stream';
 
 export const runStepsWithPythonDebugger = makeRunner({
   connect: params => connect(params),
@@ -78,7 +78,11 @@ const connect: MakeRunnerConfig['connect'] = async ({ processes, programPath, lo
   return { client };
 };
 
-async function spawnDebugAdapterServer(dap: { host: string, port: number }, processes: cp.ChildProcess[], inputStream: Stream|null): Promise<void> {
+async function spawnDebugAdapterServer(
+  dap: { host: string, port: number },
+  processes: cp.ChildProcess[],
+  inputStream: Stream|null,
+): Promise<void> {
   const debugPyFolderPath = findDebugPyFolder();
 
   return new Promise<void>(resolve => {
