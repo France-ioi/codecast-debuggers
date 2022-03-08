@@ -6,7 +6,7 @@ import { reconstructResultFromSteps } from '../reconstruct-steps';
 describe('samples hello_world.py', () => {
   let result!: StepSnapshot[];
   beforeAll(async () => {
-    const stringified = await callScript('./samples/python/hello_world.py', 'off');
+    const stringified = await callScript('./samples/python/hello_world.py', '', 'off');
     result = reconstructResultFromSteps(JSON.parse(stringified) as Steps);
   });
 
