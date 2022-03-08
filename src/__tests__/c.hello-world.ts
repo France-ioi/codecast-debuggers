@@ -32,6 +32,7 @@ describe('samples hello_world.c', () => {
                 name: 'i',
                 type: 'int',
                 value: '0',
+                memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
                 variables: []
               }
@@ -61,6 +62,7 @@ describe('samples hello_world.c', () => {
                 name: 'i',
                 type: 'int',
                 value: '1',
+                memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
                 variables: []
               }
@@ -90,6 +92,7 @@ describe('samples hello_world.c', () => {
                 name: 'i',
                 type: 'int',
                 value: '1',
+                memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
                 variables: []
               }
@@ -119,6 +122,7 @@ describe('samples hello_world.c', () => {
                 name: 'i',
                 type: 'int',
                 value: '2',
+                memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
                 variables: []
               }
@@ -148,6 +152,7 @@ describe('samples hello_world.c', () => {
                 name: 'i',
                 type: 'int',
                 value: '2',
+                memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
                 variables: []
               }
@@ -177,6 +182,7 @@ describe('samples hello_world.c', () => {
                 name: 'i',
                 type: 'int',
                 value: '3',
+                memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
                 variables: []
               }
@@ -206,6 +212,7 @@ describe('samples hello_world.c', () => {
                 name: 'i',
                 type: 'int',
                 value: '3',
+                memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
                 variables: []
               }

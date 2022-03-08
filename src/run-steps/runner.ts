@@ -181,6 +181,7 @@ export interface Scope extends DebugProtocol.Scope {
 }
 export interface Variable extends DebugProtocol.Variable {
   variables: Variable[],
+  memory?: DebugProtocol.ReadMemoryResponse['body'],
 }
 
 interface DestroyParams {
@@ -371,6 +372,17 @@ interface GetVariableParams {
 async function getVariable({ context, maxDepth, variable }: GetVariableParams, currentDepth = 0): Promise<Variable> {
   const shouldGetSubVariables = variable.variablesReference > 0 && currentDepth <= maxDepth;
   if (!shouldGetSubVariables) return { ...variable, variables: [] };
+  if (variable.memoryReference) {
+    try {
+      const memory = await context.client.readMemory({
+        memoryReference: variable.memoryReference,
+        count: 1,
+      });
+      Object.assign(variable, { memory });
+    } catch (error) {
+      logger.debug(error);
+    }
+  }
   try {
     const result = await context.client.variables({ variablesReference: variable.variablesReference });
     const variables = await Promise.all(result.variables.map(variable => getVariable({ context, variable, maxDepth }, currentDepth + 1)));

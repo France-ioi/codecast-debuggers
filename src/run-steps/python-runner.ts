@@ -48,6 +48,8 @@ const connect: MakeRunnerConfig['connect'] = async ({ processes, programPath, lo
   await client.initialize({
     adapterID: language,
     pathFormat: 'path',
+    supportsMemoryEvent: true,
+    supportsMemoryReferences: true,
   });
 
   logger.debug(6, '[Python StepsRunner] launch client');
