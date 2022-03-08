@@ -138,7 +138,7 @@ const configurations: Record<Language, Configuration> = {
     compile: mainFilePath => {
       // execSync(disableASLRCommand(), { stdio: 'inherit' })
       const executablePath = removeExt(mainFilePath);
-      cp.execSync(`gcc -g ${mainFilePath} -o ${executablePath}`, { stdio: 'inherit' });
+      cp.execSync(`gcc -g ${mainFilePath} -o ${executablePath} -ldl`, { stdio: 'inherit' });
       return { executablePath };
     },
     launchArgs: {
@@ -148,7 +148,7 @@ const configurations: Record<Language, Configuration> = {
   cpp: {
     compile: mainFilePath => {
       const executablePath = removeExt(mainFilePath);
-      cp.execSync(`g++ -g ${mainFilePath} -o ${executablePath}`, { stdio: 'inherit' });
+      cp.execSync(`g++ -g ${mainFilePath} -o ${executablePath} -ldl`, { stdio: 'inherit' });
       return { executablePath };
     },
   },

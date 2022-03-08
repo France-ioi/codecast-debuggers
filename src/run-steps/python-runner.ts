@@ -8,8 +8,17 @@ import { makeRunner, MakeRunnerConfig } from './runner';
 export const runStepsWithPythonDebugger = makeRunner({
   connect: params => connect(params),
   canDigVariable: variable => {
-    const undiggableNames = [ 'special variables', '__builtins__' ];
-    return !undiggableNames.includes(variable.name);
+    const undiggableNames = [ 'special variables', 'function variables', 'class variables', '__builtins__' ];
+    if (undiggableNames.includes(variable.name)) {
+      return false;
+    }
+
+    const undiggableTypes = [ 'module' ];
+    if (variable.type && undiggableTypes.includes(variable.type)) {
+      return false;
+    }
+
+    return true;
   },
 });
 

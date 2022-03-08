@@ -21,7 +21,9 @@ export interface MakeRunnerConfig {
     programPath: string,
     logLevel: LogLevel,
     beforeInitialize: (client: SocketDebugClient) => void,
-  }) => Promise<{ client: SocketDebugClient }>,
+  }) => Promise<{
+    client: SocketDebugClient,
+  }>,
 
   /**
    * Predicates to determine whether to keep a variable in the list and retrieve its details.
@@ -373,7 +375,12 @@ async function getVariable({ context, maxDepth, variable }: GetVariableParams, c
   if (!shouldGetSubVariables) return { ...variable, variables: [] };
   try {
     const result = await context.client.variables({ variablesReference: variable.variablesReference });
-    const variables = await Promise.all(result.variables.map(variable => getVariable({ context, variable, maxDepth }, currentDepth + 1)));
+    const variables = await Promise.all(result.variables.filter(context.canDigVariable).map(variable => getVariable({
+      context,
+      variable,
+      maxDepth: maxDepth,
+    }, currentDepth + 1)));
+
     return { ...variable, variables };
   } catch (error) {
     logger.dir({ variable, error });
