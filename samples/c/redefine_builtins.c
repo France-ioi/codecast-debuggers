@@ -19,7 +19,7 @@ char *strncpy(char *dest, const char *src, size_t n) {
    return _return_value;
 }
 
- int printf(const char *format, ...) {
+int printf(const char *format, ...) {
    int (*_builtin_printf)(const char *, ...) = dlsym(RTLD_NEXT, "printf");
 
    va_list args;

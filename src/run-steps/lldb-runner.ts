@@ -16,7 +16,7 @@ export const runStepsWithLLDB = (language: Language, options: RunnerOptions): Pr
     connect: connect(language, config, exe => executablePath = exe),
     canDigScope: scope => {
       // if (this.language === 'C++')
-      const forbiddenScopes = [ 'Registers', 'Static' ];
+      const forbiddenScopes = [ 'Registers' ];
       return !forbiddenScopes.includes(scope.name);
     },
     canDigVariable: variable => !variable.name.startsWith('std::'),
