@@ -32,7 +32,7 @@ const connect = (
   language: Language,
   config: Configuration,
   onExecutablePath: (thePath: string) => void,
-): MakeRunnerConfig['connect'] => async ({ beforeInitialize, logLevel, processes, programPath }) => {
+): MakeRunnerConfig['connect'] => async ({ beforeInitialize, logLevel, processes, programPath, inputPath }) => {
   const dap = {
     host: 'localhost',
     port: 4711,
@@ -94,7 +94,7 @@ const connect = (
   logger.debug(6, '[LLDB StepsRunner] launch client');
   const launched = client.launch({
     program: executablePath,
-    stdio: [ __filename, null, null ],
+    stdio: [ inputPath, null, null ],
     ...config.launchArgs,
   } as DebugProtocol.LaunchRequestArguments);
 

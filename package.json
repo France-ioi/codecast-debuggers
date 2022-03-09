@@ -9,7 +9,7 @@
     "build:lldb": "docker build -f ./LLDB_Dockerfile . -t lldb-debugger",
     "build:php": "docker build -f ./PHP_Dockerfile . -t php-debugger",
     "build:python": "docker build -f ./Python_Dockerfile . -t python-debugger",
-    "debug": "node out/debug.js",
+    "debug": "LOG_LEVEL=debug node out/debug.js",
     "lint": "eslint src",
     "pretest": "npm run build:ts",
     "test": "jest src"

@@ -2,11 +2,11 @@
 
 int main()
 {
-    int a, b;
+    char buffer[16];
 
-    scanf("%d%d", &a, &b);
-
-    printf("%d + %d = %d\n", a, b, (a + b));
+    while (fgets(buffer, 16, stdin)) {
+        printf("%s", buffer);
+    }
 
     return 0;
 }

@@ -16,6 +16,8 @@ export function callScript(mainFilePath: string, inputFilePath: string, logLevel
   const fileExtension = toLanguageExtension(path.extname(mainFilePath));
   const docker = dockerRunConfigs[fileExtension];
 
+  logger.debug(logLevel);
+
   const { command, args } = dockerRunCommand(docker, mainFilePath, inputFilePath, logLevel);
 
   const begin = 'RESULT_BEGIN';
@@ -24,6 +26,7 @@ export function callScript(mainFilePath: string, inputFilePath: string, logLevel
 
   const dockerProcess = cp.spawnSync(command, args, { stdio: [ 'inherit', 'pipe', 'inherit' ] });
   const result = dockerProcess.stdout?.toString('utf-8');
+  logger.debug(result);
 
   const rawJSON = result.slice(result.indexOf(begin) + begin.length, result.indexOf(end)).trim();
   return Promise.resolve(rawJSON);

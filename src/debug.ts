@@ -32,7 +32,6 @@ if (!inputPath) {
 
 callScript(filePath, inputPath, 'debug').then(rawJSON => {
   try {
-    logger.dir(JSON.parse(rawJSON), { colors: true, depth: 9 });
     fs.writeFileSync(__dirname + '/../results/steps.json', rawJSON, 'utf-8');
 
     const reconstructedJson = reconstructSnapshotsFromSteps(JSON.parse(rawJSON) as Steps);

@@ -38,7 +38,9 @@ async function main(): Promise<void> {
   logger.debug({ language, mainFilePath, inputPath });
 
   if (!mainFilePath) throw new Error('mainFilePath must be defined');
-  if (!inputPath) {
+  if (inputPath) {
+    inputPath = path.resolve(inputPath);
+  } else {
     inputPath = '';
   }
 
@@ -70,10 +72,15 @@ async function openInputStream(inputPath: string): Promise<Stream|null> {
     const inputStream = fs.createReadStream(inputPath);
 
     inputStream.on('open', () => {
+      logger.debug('Input stream is open');
       resolve(inputStream);
     });
     inputStream.on('error', e => {
+      logger.error('Cannot open file ', inputPath, e);
       reject(e);
+    });
+    inputStream.on('data', chunk => {
+      logger.debug('Input stream received : ', chunk.toString('ascii'));
     });
   });
 }

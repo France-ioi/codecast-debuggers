@@ -152,7 +152,6 @@ export const makeRunner = ({
 
     logger.debug(4, '[runner] await steps');
     const result = await steps;
-    logger.dir({ steps }, { colors: true, depth: 20 });
 
     logger.debug(5, '[runner] destroy');
     try {
