@@ -37,7 +37,7 @@ callScript(filePath, inputPath, 'off').then(rawJSON => {
     const result = JSON.parse(rawJSON) as Result;
     const reconstructedJson = {
       snapshots: reconstructSnapshotsFromSteps(result.steps),
-      stdout: result.stdout,
+      outputs: result.outputs,
     };
     fs.writeFileSync(__dirname + '/../results/snapshots.json', JSON.stringify(reconstructedJson), 'utf-8');
   } catch {

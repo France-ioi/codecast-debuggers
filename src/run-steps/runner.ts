@@ -38,7 +38,7 @@ export interface MakeRunnerConfig {
      * Let each runner implementation determine how to retrieve outputs, then pass any output to this callback,
      * outputs will be added to the result by the runner
      */
-    onStdout: (message: string) => void,
+    onOutput: (output: Output) => void,
     /**
      * Hook to be executed in runner implementations _before_ calling client.initialize()
      */
@@ -104,20 +104,22 @@ export const makeRunner = ({
   const acc: StepsAcc = {
     previous: {},
     steps: [],
-    stdout: [],
+    outputs: [],
   };
-  const onStdout: Parameters<MakeRunnerConfig['connect']>[0]['onStdout'] = message => {
-    const [ stackFrame ] = acc.previous.stackFrames ?? [];
-    if (!stackFrame) return;
-    const stdout: Stdout = {
-      column: stackFrame.column,
-      line: stackFrame.line,
-      name: stackFrame.name,
-      source: stackFrame.source,
-      stdout: message,
-    };
-    logger.debug('Add stdout:', stdout);
-    acc.stdout.push(stdout);
+  const onOutput: Parameters<MakeRunnerConfig['connect']>[0]['onOutput'] = output => {
+    if (!acc.previous.stackFrames) return; // too early to have "real" outputs
+    const [ stackFrame ] = acc.previous.stackFrames;
+    logger.debug('Add stdout:', output);
+    acc.outputs.push({
+      output: output.output,
+      category: output.category,
+      column: output.column ?? stackFrame?.column,
+      data: output.data as unknown,
+      group: output.group,
+      line: output.line ?? stackFrame?.line,
+      source: output.source ?? stackFrame?.source,
+      variablesReference: output.variablesReference,
+    });
   };
   let resolveSteps: () => void = () => {};
   const steps = new Promise<StepsAcc>(resolve => {
@@ -159,7 +161,7 @@ export const makeRunner = ({
       inputStream: options.inputStream,
       inputPath: options.inputPath,
       logLevel: LogLevel[options.logLevel ?? 'Off'],
-      onStdout,
+      onOutput,
       beforeInitialize: client => registerEvents(client, resolveSteps),
     });
 
@@ -197,7 +199,7 @@ export const makeRunner = ({
     logger.debug(6, '[runner] return result');
     return {
       steps: result.steps,
-      stdout: result.stdout,
+      outputs: result.outputs,
     };
   };
 };
@@ -206,10 +208,10 @@ export type Step = Patch[];
 export type Steps = Step[];
 export interface Result {
   steps: Steps,
-  stdout: Stdout[],
+  outputs: Output[],
 }
 
-type Stdout = Pick<DebugProtocol.StackFrame, 'column'|'line'|'source'|'name'> & { stdout: string };
+type Output = DebugProtocol.OutputEvent['body'];
 
 export interface StepsAcc {
   /**
@@ -223,7 +225,7 @@ export interface StepsAcc {
   /**
    * Accumulated outputs
    */
-  stdout: Stdout[],
+  outputs: Output[],
 }
 export interface StepSnapshot {
   stackFrames: StackFrame[],

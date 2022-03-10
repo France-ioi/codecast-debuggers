@@ -23,7 +23,7 @@ export const runStepsWithPythonDebugger = makeRunner({
   },
 });
 
-const connect: MakeRunnerConfig['connect'] = async ({ processes, programPath, logLevel, onStdout, beforeInitialize, inputStream }) => {
+const connect: MakeRunnerConfig['connect'] = async ({ processes, programPath, logLevel, onOutput, beforeInitialize, inputStream }) => {
   const language = 'Python';
   const dap = {
     host: 'localhost',
@@ -44,7 +44,7 @@ const connect: MakeRunnerConfig['connect'] = async ({ processes, programPath, lo
   client.onOutput(event => {
     // Sometimes PyDebug emits stdouts and \n separately,
     // because of that we have to filter out only-whitespace outputs
-    if (event.category === 'stdout' && event.output.trim()) onStdout(event.output);
+    if ((event.category === 'stdout' || event.category === 'stderr') && event.output.trim()) onOutput(event);
   });
 
   const initialized = new Promise<void>(resolve => {

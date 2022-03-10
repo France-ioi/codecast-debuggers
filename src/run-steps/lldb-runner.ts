@@ -33,7 +33,7 @@ const connect = (
   language: Language,
   config: Configuration,
   onExecutablePath: (thePath: string) => void,
-): MakeRunnerConfig['connect'] => async ({ beforeInitialize, logLevel, onStdout, processes, programPath, inputPath }) => {
+): MakeRunnerConfig['connect'] => async ({ beforeInitialize, logLevel, onOutput, processes, programPath, inputPath }) => {
   const dap = {
     host: 'localhost',
     port: 4711,
@@ -80,8 +80,12 @@ const connect = (
         // eslint-disable-next-line @typescript-eslint/naming-convention
         env: { ...env, RUST_BACKTRACE: 'full' },
       });
-      subprocess.onData(data => {
-        onStdout(data);
+      subprocess.onData(message => {
+        onOutput({
+          category: 'stdout',
+          // since pty adds a \n when emitting command output, remove one from the message
+          output: message.replace(/\n$/, ''),
+        });
       });
       subprocess.onExit(e => {
         logger.debug('[on exit]', e);
