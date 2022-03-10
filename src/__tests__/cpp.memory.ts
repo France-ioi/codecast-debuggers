@@ -11,13 +11,16 @@ describe('samples memory.cpp', () => {
   });
 
   it('should have valid stdout', () => {
-    expect(result.stdout).toHaveLength(1);
-    expect(result.stdout[0]).toEqual({
+    expect(result.outputs).toHaveLength(1);
+    expect(result.outputs[0]).toEqual({
+      category: 'stdout',
       column: 17,
       line: 7,
-      name: 'main',
-      source: { name: 'memory.cpp', path: '/usr/project/samples/cpp/memory.cpp' },
-      stdout: expect.stringContaining('Hello World 42'),
+      output: 'Hello World 42\r',
+      source: {
+        name: 'memory.cpp',
+        path: '/usr/project/samples/cpp/memory.cpp',
+      },
     });
   });
 

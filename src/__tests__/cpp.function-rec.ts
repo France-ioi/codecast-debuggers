@@ -10,17 +10,17 @@ describe('samples function_rec.cpp', () => {
     result = JSON.parse(stringified) as Result;
   });
 
-  it('should have valid stdout', () => {
-    expect(result.stdout).toHaveLength(1);
-    expect(result.stdout[0]).toEqual({
+  it('should have valid outputs', () => {
+    expect(result.outputs).toHaveLength(1);
+    expect(result.outputs[0]).toEqual({
+      category: 'stdout',
       column: 23,
       line: 11,
-      name: 'main',
+      output: '6\r',
       source: {
         name: 'function_rec.cpp',
         path: '/usr/project/samples/cpp/function_rec.cpp'
       },
-      stdout: expect.stringContaining('6'),
     });
   });
 

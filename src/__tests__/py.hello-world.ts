@@ -10,47 +10,47 @@ describe('samples hello_world.py', () => {
     result = JSON.parse(stringified) as Result;
   });
 
-  it('should have valid stdout', () => {
-    expect(result.stdout).toHaveLength(4);
-    expect(result.stdout[0]).toEqual({
+  it('should have valid outputs', () => {
+    expect(result.outputs).toHaveLength(4);
+    expect(result.outputs[0]).toEqual({
+      category: 'stdout',
       column: 1,
       line: 5,
-      name: '<module>',
+      output: expect.stringContaining('Number: 0'),
       source: {
         path: '/usr/project/samples/python/hello_world.py',
         sourceReference: 0
       },
-      stdout: expect.stringContaining('Number: 0'),
     });
-    expect(result.stdout[1]).toEqual({
+    expect(result.outputs[1]).toEqual({
+      category: 'stdout',
       column: 1,
       line: 5,
-      name: '<module>',
+      output: expect.stringContaining('Number: 2'),
       source: {
         path: '/usr/project/samples/python/hello_world.py',
         sourceReference: 0
       },
-      stdout: expect.stringContaining('Number: 2'),
     });
-    expect(result.stdout[2]).toEqual({
+    expect(result.outputs[2]).toEqual({
+      category: 'stdout',
       column: 1,
       line: 5,
-      name: '<module>',
+      output: expect.stringContaining('Number: 4'),
       source: {
         path: '/usr/project/samples/python/hello_world.py',
         sourceReference: 0
       },
-      stdout: expect.stringContaining('Number: 4'),
     });
-    expect(result.stdout[3]).toEqual({
+    expect(result.outputs[3]).toEqual({
+      category: 'stdout',
       column: 1,
       line: 8,
-      name: '<module>',
+      output: expect.stringContaining('Goodbye world'),
       source: {
         path: '/usr/project/samples/python/hello_world.py',
         sourceReference: 0
       },
-      stdout: expect.stringContaining('Goodbye world'),
     });
   });
 

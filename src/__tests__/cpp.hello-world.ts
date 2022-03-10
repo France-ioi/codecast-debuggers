@@ -10,47 +10,47 @@ describe('samples hello_world.cpp', () => {
     result = JSON.parse(stringified) as Result;
   });
 
-  it('should have valid stdout', () => {
-    expect(result.stdout).toHaveLength(4);
-    expect(result.stdout[0]).toEqual({
+  it('should have valid outputs', () => {
+    expect(result.outputs).toHaveLength(4);
+    expect(result.outputs[0]).toEqual({
+      category: 'stdout',
       column: 17,
       line: 3,
-      name: 'main',
+      output: 'Hello World\r',
       source: {
         name: 'hello_world.cpp',
         path: '/usr/project/samples/cpp/hello_world.cpp'
       },
-      stdout: expect.stringContaining('Hello World'),
     });
-    expect(result.stdout[1]).toEqual({
+    expect(result.outputs[1]).toEqual({
+      category: 'stdout',
       column: 25,
       line: 6,
-      name: 'main',
+      output: '0\r',
       source: {
         name: 'hello_world.cpp',
         path: '/usr/project/samples/cpp/hello_world.cpp'
       },
-      stdout: expect.stringContaining('0'),
     });
-    expect(result.stdout[2]).toEqual({
+    expect(result.outputs[2]).toEqual({
+      category: 'stdout',
       column: 25,
       line: 6,
-      name: 'main',
+      output: '2\r',
       source: {
         name: 'hello_world.cpp',
         path: '/usr/project/samples/cpp/hello_world.cpp'
       },
-      stdout: expect.stringContaining('2'),
     });
-    expect(result.stdout[3]).toEqual({
+    expect(result.outputs[3]).toEqual({
+      category: 'stdout',
       column: 25,
       line: 6,
-      name: 'main',
+      output: '4\r',
       source: {
         name: 'hello_world.cpp',
         path: '/usr/project/samples/cpp/hello_world.cpp'
       },
-      stdout: expect.stringContaining('4'),
     });
   });
 

@@ -10,27 +10,27 @@ describe('samples hello_world.c', () => {
     result = JSON.parse(stringified) as Result;
   });
 
-  it('should have valid stdout', () => {
-    expect(result.stdout).toHaveLength(2);
-    expect(result.stdout[0]).toEqual({
+  it('should have valid outputs', () => {
+    expect(result.outputs).toHaveLength(2);
+    expect(result.outputs[0]).toEqual({
+      category: 'stdout',
       column: 9,
       line: 10,
-      name: 'main',
+      output: 'number: 1\r',
       source: {
         name: 'hello_world.c',
         path: '/usr/project/samples/c/hello_world.c'
       },
-      stdout: expect.stringContaining('number: 1'),
     });
-    expect(result.stdout[1]).toEqual({
+    expect(result.outputs[1]).toEqual({
+      category: 'stdout',
       column: 9,
       line: 10,
-      name: 'main',
+      output: 'number: 2\r',
       source: {
         name: 'hello_world.c',
         path: '/usr/project/samples/c/hello_world.c'
       },
-      stdout: expect.stringContaining('number: 2'),
     });
   });
 
