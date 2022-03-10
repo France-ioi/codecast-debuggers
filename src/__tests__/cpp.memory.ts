@@ -10,7 +10,7 @@ describe('samples memory.cpp', () => {
     result = JSON.parse(stringified) as Result;
   });
 
-  it('should have valid stdout', () => {
+  it('should have valid outputs', () => {
     expect(result.outputs).toHaveLength(1);
     expect(result.outputs[0]).toEqual({
       category: 'stdout',
