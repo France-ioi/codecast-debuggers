@@ -1,17 +1,62 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { callScript } from '../call-script';
-import { Steps, StepSnapshot } from '../run-steps/runner';
+import { Result } from '../run-steps/runner';
 import { reconstructSnapshotsFromSteps } from '../reconstruct-snapshots';
 
 describe('samples hello_world.py', () => {
-  let result!: StepSnapshot[];
+  let result!: Result;
   beforeAll(async () => {
     const stringified = await callScript('./samples/python/hello_world.py', '', 'off');
-    result = reconstructSnapshotsFromSteps(JSON.parse(stringified) as Steps);
+    result = JSON.parse(stringified) as Result;
   });
 
-  it('should have a valid result', () => {
-    expect(result[0]?.stackFrames).toEqual(expect.arrayContaining([
+  it('should have valid stdout', () => {
+    expect(result.stdout).toHaveLength(4);
+    expect(result.stdout[0]).toEqual({
+      column: 1,
+      line: 5,
+      name: '<module>',
+      source: {
+        path: '/usr/project/samples/python/hello_world.py',
+        sourceReference: 0
+      },
+      stdout: expect.stringContaining('Number: 0'),
+    });
+    expect(result.stdout[1]).toEqual({
+      column: 1,
+      line: 5,
+      name: '<module>',
+      source: {
+        path: '/usr/project/samples/python/hello_world.py',
+        sourceReference: 0
+      },
+      stdout: expect.stringContaining('Number: 2'),
+    });
+    expect(result.stdout[2]).toEqual({
+      column: 1,
+      line: 5,
+      name: '<module>',
+      source: {
+        path: '/usr/project/samples/python/hello_world.py',
+        sourceReference: 0
+      },
+      stdout: expect.stringContaining('Number: 4'),
+    });
+    expect(result.stdout[3]).toEqual({
+      column: 1,
+      line: 8,
+      name: '<module>',
+      source: {
+        path: '/usr/project/samples/python/hello_world.py',
+        sourceReference: 0
+      },
+      stdout: expect.stringContaining('Goodbye world'),
+    });
+  });
+
+  it('should have valid steps', () => {
+    const steps = reconstructSnapshotsFromSteps(result.steps);
+    expect(steps[0]?.stackFrames).toEqual(expect.arrayContaining([
       {
         id: expect.any(Number),
         name: '<module>',
@@ -30,7 +75,7 @@ describe('samples hello_world.py', () => {
         ]),
       }
     ]));
-    expect(result[1]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(steps[1]?.stackFrames).toEqual(expect.arrayContaining([
       {
         id: expect.any(Number),
         name: '<module>',
@@ -58,7 +103,7 @@ describe('samples hello_world.py', () => {
         ]),
       }
     ]));
-    expect(result[2]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(steps[2]?.stackFrames).toEqual(expect.arrayContaining([
       {
         id: expect.any(Number),
         name: '<module>',
@@ -94,7 +139,7 @@ describe('samples hello_world.py', () => {
         ]),
       }
     ]));
-    expect(result[3]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(steps[3]?.stackFrames).toEqual(expect.arrayContaining([
       {
         id: expect.any(Number),
         name: '<module>',
@@ -138,7 +183,7 @@ describe('samples hello_world.py', () => {
         ]),
       }
     ]));
-    expect(result[4]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(steps[4]?.stackFrames).toEqual(expect.arrayContaining([
       {
         id: expect.any(Number),
         name: '<module>',
@@ -182,7 +227,7 @@ describe('samples hello_world.py', () => {
         ]),
       }
     ]));
-    expect(result[5]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(steps[5]?.stackFrames).toEqual(expect.arrayContaining([
       {
         id: expect.any(Number),
         name: '<module>',
@@ -226,7 +271,7 @@ describe('samples hello_world.py', () => {
         ]),
       }
     ]));
-    expect(result[6]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(steps[6]?.stackFrames).toEqual(expect.arrayContaining([
       {
         id: expect.any(Number),
         name: '<module>',
@@ -270,7 +315,7 @@ describe('samples hello_world.py', () => {
         ]),
       }
     ]));
-    expect(result[7]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(steps[7]?.stackFrames).toEqual(expect.arrayContaining([
       {
         id: expect.any(Number),
         name: '<module>',
@@ -314,7 +359,7 @@ describe('samples hello_world.py', () => {
         ]),
       }
     ]));
-    expect(result[8]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(steps[8]?.stackFrames).toEqual(expect.arrayContaining([
       {
         id: expect.any(Number),
         name: '<module>',
@@ -358,7 +403,7 @@ describe('samples hello_world.py', () => {
         ]),
       }
     ]));
-    expect(result[9]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(steps[9]?.stackFrames).toEqual(expect.arrayContaining([
       {
         id: expect.any(Number),
         name: '<module>',
@@ -402,7 +447,7 @@ describe('samples hello_world.py', () => {
         ]),
       }
     ]));
-    expect(result[10]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(steps[10]?.stackFrames).toEqual(expect.arrayContaining([
       {
         id: expect.any(Number),
         name: '<module>',
@@ -446,7 +491,7 @@ describe('samples hello_world.py', () => {
         ]),
       }
     ]));
-    expect(result[11]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(steps[11]?.stackFrames).toEqual(expect.arrayContaining([
       {
         id: expect.any(Number),
         name: '<module>',
@@ -490,7 +535,7 @@ describe('samples hello_world.py', () => {
         ]),
       }
     ]));
-    expect(result[12]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(steps[12]?.stackFrames).toEqual(expect.arrayContaining([
       {
         id: expect.any(Number),
         name: '<module>',
@@ -534,7 +579,7 @@ describe('samples hello_world.py', () => {
         ]),
       }
     ]));
-    expect(result[13]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(steps[13]?.stackFrames).toEqual(expect.arrayContaining([
       {
         id: expect.any(Number),
         name: '<module>',

@@ -1,17 +1,32 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { callScript } from '../call-script';
-import { Steps, StepSnapshot } from '../run-steps/runner';
+import { Result } from '../run-steps/runner';
 import { reconstructSnapshotsFromSteps } from '../reconstruct-snapshots';
 
 describe('samples function_rec.cpp', () => {
-  let result!: StepSnapshot[];
+  let result!: Result;
   beforeAll(async () => {
     const stringified = await callScript('./samples/cpp/function_rec.cpp', '', 'off');
-    result = reconstructSnapshotsFromSteps(JSON.parse(stringified) as Steps);
+    result = JSON.parse(stringified) as Result;
   });
 
-  it('should have a valid result', () => {
-    expect(result[0]?.stackFrames).toEqual(expect.arrayContaining([
+  it('should have valid stdout', () => {
+    expect(result.stdout).toHaveLength(1);
+    expect(result.stdout[0]).toEqual({
+      column: 23,
+      line: 11,
+      name: 'main',
+      source: {
+        name: 'function_rec.cpp',
+        path: '/usr/project/samples/cpp/function_rec.cpp'
+      },
+      stdout: expect.stringContaining('6'),
+    });
+  });
+
+  it('should have valid steps', () => {
+    const steps = reconstructSnapshotsFromSteps(result.steps);
+    expect(steps[0]?.stackFrames).toEqual(expect.arrayContaining([
       {
         column: 1,
         id: expect.any(Number),
@@ -31,7 +46,7 @@ describe('samples function_rec.cpp', () => {
         ]),
       }
     ]));
-    expect(result[1]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(steps[1]?.stackFrames).toEqual(expect.arrayContaining([
       {
         column: 1,
         id: expect.any(Number),
@@ -51,7 +66,7 @@ describe('samples function_rec.cpp', () => {
         ]),
       }
     ]));
-    expect(result[2]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(steps[2]?.stackFrames).toEqual(expect.arrayContaining([
       {
         column: 1,
         id: expect.any(Number),
@@ -89,7 +104,7 @@ describe('samples function_rec.cpp', () => {
         ]),
       }
     ]));
-    expect(result[3]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(steps[3]?.stackFrames).toEqual(expect.arrayContaining([
       {
         column: 1,
         id: expect.any(Number),
@@ -109,7 +124,7 @@ describe('samples function_rec.cpp', () => {
         ]),
       }
     ]));
-    expect(result[4]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(steps[4]?.stackFrames).toEqual(expect.arrayContaining([
       {
         column: 23,
         id: expect.any(Number),
@@ -129,7 +144,7 @@ describe('samples function_rec.cpp', () => {
         ]),
       }
     ]));
-    expect(result[5]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(steps[5]?.stackFrames).toEqual(expect.arrayContaining([
       {
         column: 4,
         id: expect.any(Number),
@@ -177,7 +192,7 @@ describe('samples function_rec.cpp', () => {
         ]),
       }
     ]));
-    expect(result[6]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(steps[6]?.stackFrames).toEqual(expect.arrayContaining([
       {
         column: 19,
         id: expect.any(Number),
@@ -225,7 +240,7 @@ describe('samples function_rec.cpp', () => {
         ]),
       }
     ]));
-    expect(result[7]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(steps[7]?.stackFrames).toEqual(expect.arrayContaining([
       {
         column: 4,
         id: expect.any(Number),
@@ -301,7 +316,7 @@ describe('samples function_rec.cpp', () => {
         ]),
       }
     ]));
-    expect(result[8]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(steps[8]?.stackFrames).toEqual(expect.arrayContaining([
       {
         column: 19,
         id: expect.any(Number),
@@ -377,7 +392,7 @@ describe('samples function_rec.cpp', () => {
         ]),
       }
     ]));
-    expect(result[9]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(steps[9]?.stackFrames).toEqual(expect.arrayContaining([
       {
         column: 4,
         id: expect.any(Number),
@@ -481,7 +496,7 @@ describe('samples function_rec.cpp', () => {
         ]),
       }
     ]));
-    expect(result[10]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(steps[10]?.stackFrames).toEqual(expect.arrayContaining([
       {
         column: 14,
         id: expect.any(Number),
@@ -585,7 +600,7 @@ describe('samples function_rec.cpp', () => {
         ]),
       }
     ]));
-    expect(result[11]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(steps[11]?.stackFrames).toEqual(expect.arrayContaining([
       {
         column: 1,
         id: expect.any(Number),
@@ -689,7 +704,7 @@ describe('samples function_rec.cpp', () => {
         ]),
       }
     ]));
-    expect(result[12]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(steps[12]?.stackFrames).toEqual(expect.arrayContaining([
       {
         column: 23,
         id: expect.any(Number),
@@ -765,7 +780,7 @@ describe('samples function_rec.cpp', () => {
         ]),
       }
     ]));
-    expect(result[13]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(steps[13]?.stackFrames).toEqual(expect.arrayContaining([
       {
         column: 1,
         id: expect.any(Number),
@@ -841,7 +856,7 @@ describe('samples function_rec.cpp', () => {
         ]),
       }
     ]));
-    expect(result[14]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(steps[14]?.stackFrames).toEqual(expect.arrayContaining([
       {
         column: 23,
         id: expect.any(Number),
@@ -889,7 +904,7 @@ describe('samples function_rec.cpp', () => {
         ]),
       }
     ]));
-    expect(result[15]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(steps[15]?.stackFrames).toEqual(expect.arrayContaining([
       {
         column: 1,
         id: expect.any(Number),
@@ -937,7 +952,7 @@ describe('samples function_rec.cpp', () => {
         ]),
       }
     ]));
-    expect(result[16]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(steps[16]?.stackFrames).toEqual(expect.arrayContaining([
       {
         column: 23,
         id: expect.any(Number),
@@ -957,7 +972,7 @@ describe('samples function_rec.cpp', () => {
         ]),
       }
     ]));
-    expect(result[17]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(steps[17]?.stackFrames).toEqual(expect.arrayContaining([
       {
         column: 1,
         id: expect.any(Number),

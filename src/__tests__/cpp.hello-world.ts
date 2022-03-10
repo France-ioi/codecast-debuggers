@@ -1,17 +1,62 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { callScript } from '../call-script';
-import { Steps, StepSnapshot } from '../run-steps/runner';
+import { Result } from '../run-steps/runner';
 import { reconstructSnapshotsFromSteps } from '../reconstruct-snapshots';
 
 describe('samples hello_world.cpp', () => {
-  let result!: StepSnapshot[];
+  let result!: Result;
   beforeAll(async () => {
     const stringified = await callScript('./samples/cpp/hello_world.cpp', '', 'off');
-    result = reconstructSnapshotsFromSteps(JSON.parse(stringified) as Steps);
+    result = JSON.parse(stringified) as Result;
   });
 
-  it('should have a valid result', () => {
-    expect(result[0]?.stackFrames).toEqual(expect.arrayContaining([
+  it('should have valid stdout', () => {
+    expect(result.stdout).toHaveLength(4);
+    expect(result.stdout[0]).toEqual({
+      column: 17,
+      line: 3,
+      name: 'main',
+      source: {
+        name: 'hello_world.cpp',
+        path: '/usr/project/samples/cpp/hello_world.cpp'
+      },
+      stdout: expect.stringContaining('Hello World'),
+    });
+    expect(result.stdout[1]).toEqual({
+      column: 25,
+      line: 6,
+      name: 'main',
+      source: {
+        name: 'hello_world.cpp',
+        path: '/usr/project/samples/cpp/hello_world.cpp'
+      },
+      stdout: expect.stringContaining('0'),
+    });
+    expect(result.stdout[2]).toEqual({
+      column: 25,
+      line: 6,
+      name: 'main',
+      source: {
+        name: 'hello_world.cpp',
+        path: '/usr/project/samples/cpp/hello_world.cpp'
+      },
+      stdout: expect.stringContaining('2'),
+    });
+    expect(result.stdout[3]).toEqual({
+      column: 25,
+      line: 6,
+      name: 'main',
+      source: {
+        name: 'hello_world.cpp',
+        path: '/usr/project/samples/cpp/hello_world.cpp'
+      },
+      stdout: expect.stringContaining('4'),
+    });
+  });
+
+  it('should have valid steps', () => {
+    const steps = reconstructSnapshotsFromSteps(result.steps);
+    expect(steps[0]?.stackFrames).toEqual(expect.arrayContaining([
       {
         column: 1,
         id: expect.any(Number),
@@ -31,7 +76,7 @@ describe('samples hello_world.cpp', () => {
         ]),
       }
     ]));
-    expect(result[1]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(steps[1]?.stackFrames).toEqual(expect.arrayContaining([
       {
         column: 1,
         id: expect.any(Number),
@@ -51,7 +96,7 @@ describe('samples hello_world.cpp', () => {
         ]),
       }
     ]));
-    expect(result[2]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(steps[2]?.stackFrames).toEqual(expect.arrayContaining([
       {
         column: 1,
         id: expect.any(Number),
@@ -89,7 +134,7 @@ describe('samples hello_world.cpp', () => {
         ]),
       }
     ]));
-    expect(result[3]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(steps[3]?.stackFrames).toEqual(expect.arrayContaining([
       {
         column: 1,
         id: expect.any(Number),
@@ -109,7 +154,7 @@ describe('samples hello_world.cpp', () => {
         ]),
       }
     ]));
-    expect(result[4]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(steps[4]?.stackFrames).toEqual(expect.arrayContaining([
       {
         column: 17,
         id: expect.any(Number),
@@ -129,7 +174,7 @@ describe('samples hello_world.cpp', () => {
         ]),
       }
     ]));
-    expect(result[5]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(steps[5]?.stackFrames).toEqual(expect.arrayContaining([
       {
         column: 13,
         id: expect.any(Number),
@@ -159,7 +204,7 @@ describe('samples hello_world.cpp', () => {
         ]),
       }
     ]));
-    expect(result[6]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(steps[6]?.stackFrames).toEqual(expect.arrayContaining([
       {
         column: 11,
         id: expect.any(Number),
@@ -198,7 +243,7 @@ describe('samples hello_world.cpp', () => {
         ]),
       }
     ]));
-    expect(result[7]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(steps[7]?.stackFrames).toEqual(expect.arrayContaining([
       {
         column: 25,
         id: expect.any(Number),
@@ -237,7 +282,7 @@ describe('samples hello_world.cpp', () => {
         ]),
       }
     ]));
-    expect(result[8]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(steps[8]?.stackFrames).toEqual(expect.arrayContaining([
       {
         column: 4,
         id: expect.any(Number),
@@ -267,7 +312,7 @@ describe('samples hello_world.cpp', () => {
         ]),
       }
     ]));
-    expect(result[9]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(steps[9]?.stackFrames).toEqual(expect.arrayContaining([
       {
         column: 11,
         id: expect.any(Number),
@@ -306,7 +351,7 @@ describe('samples hello_world.cpp', () => {
         ]),
       }
     ]));
-    expect(result[10]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(steps[10]?.stackFrames).toEqual(expect.arrayContaining([
       {
         column: 25,
         id: expect.any(Number),
@@ -345,7 +390,7 @@ describe('samples hello_world.cpp', () => {
         ]),
       }
     ]));
-    expect(result[11]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(steps[11]?.stackFrames).toEqual(expect.arrayContaining([
       {
         column: 4,
         id: expect.any(Number),
@@ -375,7 +420,7 @@ describe('samples hello_world.cpp', () => {
         ]),
       }
     ]));
-    expect(result[12]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(steps[12]?.stackFrames).toEqual(expect.arrayContaining([
       {
         column: 11,
         id: expect.any(Number),
@@ -414,7 +459,7 @@ describe('samples hello_world.cpp', () => {
         ]),
       }
     ]));
-    expect(result[13]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(steps[13]?.stackFrames).toEqual(expect.arrayContaining([
       {
         column: 25,
         id: expect.any(Number),
@@ -453,7 +498,7 @@ describe('samples hello_world.cpp', () => {
         ]),
       }
     ]));
-    expect(result[14]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(steps[14]?.stackFrames).toEqual(expect.arrayContaining([
       {
         column: 4,
         id: expect.any(Number),
@@ -483,7 +528,7 @@ describe('samples hello_world.cpp', () => {
         ]),
       }
     ]));
-    expect(result[15]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(steps[15]?.stackFrames).toEqual(expect.arrayContaining([
       {
         column: 1,
         id: expect.any(Number),
