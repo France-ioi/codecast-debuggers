@@ -1,4 +1,3 @@
-import cp from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { getDiff, applyDiff } from 'recursive-diff';
@@ -10,19 +9,39 @@ import { Stream } from 'stream';
 
 enablePatches();
 
+export interface Subprocess {
+  kill: () => void,
+}
+
 export interface MakeRunnerConfig {
   /**
    * Allow per debugger to define how to connect to the Debug Adapter Protocol server.
    * For some it might be a combination of spawning a server and launching the socket debug client
    * For others it might be only attaching the socket debug client
+   * Let each debugger also take care of other implementation details like emitting outputs, launching processes or
+   * executing reverse queries, etc.
    */
   connect: (input: {
-    processes: cp.ChildProcess[],
+    /**
+     * Runner implementations can push sub processes in that array, they will be killed when the runner is destroyed
+     */
+    processes: Subprocess[],
+    /**
+     * Runner implementations can push subscribers, they will will be unsubscribed when the runner is destroyed
+     */
     subscribers: Unsubscribable[],
     programPath: string,
     inputStream: Stream|null,
     inputPath: string,
     logLevel: LogLevel,
+    /**
+     * Let each runner implementation determine how to retrieve outputs, then pass any output to this callback,
+     * outputs will be added to the result by the runner
+     */
+    onStdout: (message: string) => void,
+    /**
+     * Hook to be executed in runner implementations _before_ calling client.initialize()
+     */
     beforeInitialize: (client: SocketDebugClient) => void,
   }) => Promise<{
     client: SocketDebugClient,
@@ -68,7 +87,7 @@ interface RunStepContext {
   canDigScope: (scope: DebugProtocol.Scope) => boolean,
 }
 
-export type Runner = (options: RunnerOptions) => Promise<Steps>;
+export type Runner = (options: RunnerOptions) => Promise<Result>;
 
 /**
  * Used by a factory to create a runner per debugger based on the language
@@ -85,13 +104,27 @@ export const makeRunner = ({
   const acc: StepsAcc = {
     previous: {},
     steps: [],
+    stdout: [],
+  };
+  const onStdout: Parameters<MakeRunnerConfig['connect']>[0]['onStdout'] = message => {
+    const [ stackFrame ] = acc.previous.stackFrames ?? [];
+    if (!stackFrame) return;
+    const stdout: Stdout = {
+      column: stackFrame.column,
+      line: stackFrame.line,
+      name: stackFrame.name,
+      source: stackFrame.source,
+      stdout: message,
+    };
+    logger.debug('Add stdout:', stdout);
+    acc.stdout.push(stdout);
   };
   let resolveSteps: () => void = () => {};
   const steps = new Promise<StepsAcc>(resolve => {
     resolveSteps = (): void => resolve(acc);
   });
   return async (options: RunnerOptions) => {
-    const processes: cp.ChildProcess[] = [];
+    const processes: Subprocess[] = [];
     const subscribers: Unsubscribable[] = [];
     const programPath = path.resolve(process.cwd(), options.main.relativePath);
 
@@ -126,6 +159,7 @@ export const makeRunner = ({
       inputStream: options.inputStream,
       inputPath: options.inputPath,
       logLevel: LogLevel[options.logLevel ?? 'Off'],
+      onStdout,
       beforeInitialize: client => registerEvents(client, resolveSteps),
     });
 
@@ -161,12 +195,21 @@ export const makeRunner = ({
     }
 
     logger.debug(6, '[runner] return result');
-    return result.steps;
+    return {
+      steps: result.steps,
+      stdout: result.stdout,
+    };
   };
 };
 
 export type Step = Patch[];
 export type Steps = Step[];
+export interface Result {
+  steps: Steps,
+  stdout: Stdout[],
+}
+
+type Stdout = Pick<DebugProtocol.StackFrame, 'column'|'line'|'source'|'name'> & { stdout: string };
 
 export interface StepsAcc {
   /**
@@ -177,6 +220,10 @@ export interface StepsAcc {
    * A step is a list of patches computed from previous step and *not* from start
    */
   steps: Steps, // Patches _per step based on previous step_
+  /**
+   * Accumulated outputs
+   */
+  stdout: Stdout[],
 }
 export interface StepSnapshot {
   stackFrames: StackFrame[],
@@ -195,7 +242,7 @@ export interface Variable extends DebugProtocol.Variable {
 interface DestroyParams {
   client: SocketDebugClient,
   destroyed: boolean,
-  processes: cp.ChildProcess[],
+  processes: Subprocess[],
   subscribers: Unsubscribable[],
   programPath: string,
   afterDestroy: () => Promise<void>,
@@ -207,7 +254,7 @@ async function destroy(origin: string, { destroyed, subscribers, processes, clie
   logger.debug(`[StepsRunner] Destroy ⋅ ${origin}`);
   subscribers.forEach(subscriber => subscriber.unsubscribe());
   processes.forEach(subprocess => {
-    if (!subprocess.killed) subprocess.kill();
+    subprocess.kill();
   });
   client.disconnectAdapter();
   await client.disconnect({}).catch(() => { /* throws if already disconnected */ });

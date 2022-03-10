@@ -1,9 +1,9 @@
-import { RunnerOptions, Steps } from './runner';
+import { Result, RunnerOptions } from './runner';
 import { runStepsWithPHPDebugger } from './php-runner';
 import { runStepsWithPythonDebugger } from './python-runner';
 import { runStepsWithLLDB } from './lldb-runner';
 
-export const runSteps = (language: Language, options: RunnerOptions): Promise<Steps> => {
+export const runSteps = (language: Language, options: RunnerOptions): Promise<Result> => {
   switch (language) {
     case 'php': return runStepsWithPHPDebugger(options);
     case 'c': return runStepsWithLLDB('c', options);
