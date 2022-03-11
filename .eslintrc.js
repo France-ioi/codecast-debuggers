@@ -5,6 +5,9 @@ module.exports = {
   parserOptions: {
       project: './tsconfig.json'
   },
+  plugins: [
+    'eslint-plugin-tsdoc',
+  ],
   extends: [
       'eslint:recommended',
       'plugin:@typescript-eslint/eslint-recommended',
@@ -12,6 +15,23 @@ module.exports = {
   ],
   rules: {
       'no-unused-vars': 'off',
+      'curly': ['error'],
+      'lines-around-comment': [ 'error', {
+          'beforeBlockComment': true,
+          'allowClassStart': true,
+          'allowBlockStart': true,
+          'allowObjectStart': true,
+          'allowArrayStart': true,
+      }],
+      'padding-line-between-statements': [
+          'error',
+          { 'blankLine': 'always', 'prev': '*', "next": 'return' },
+          { 'blankLine': 'always', 'prev': '*', "next": 'throw' },
+          { 'blankLine': 'always', 'prev': '*', "next": 'try' },
+          { 'blankLine': 'always', 'prev': '*', "next": 'function' },
+      ],
+      'prefer-const': ['error'],
+      'comma-dangle': ['error', 'always-multiline'],
       '@typescript-eslint/no-unused-vars': [
           'error',
           { 'argsIgnorePattern': '^_' }
@@ -71,6 +91,7 @@ module.exports = {
           avoidEscape: true,
           allowTemplateLiterals: false
       }],
+      'tsdoc/syntax': 'warn',
   },
   overrides: [
       {

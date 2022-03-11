@@ -61,8 +61,7 @@ async function spawnAdapterServer(dap: { host: string, port: number }, processes
       stdio: [ 'ignore', 'pipe', 'pipe' ],
       cwd: launcherFileDir,
       detached: true,
-    },
-    );
+    });
     processes.push(subprocess);
 
     subprocess.on('message', () => {
@@ -71,12 +70,18 @@ async function spawnAdapterServer(dap: { host: string, port: number }, processes
     const resolveOnMessage = (origin: string) => (data: Buffer) => {
       logger.debug(`DAP server ready (${origin})`);
       const message = data.toString('utf8');
-      if (message.startsWith('waiting for debug')) resolve();
+      if (message.startsWith('waiting for debug')) {
+        resolve();
+      }
     };
     subprocess?.stdout?.once('data', resolveOnMessage('stderr'));
     subprocess?.stderr?.once('data', resolveOnMessage('stderr'));
-    if (logger.level === 'debug') subprocess?.stdout?.on('data', (data: Buffer) => process.stdout.write(data));
-    if (logger.level === 'debug') subprocess?.stderr?.on('data', (data: Buffer) => process.stderr.write(data));
+    if (logger.level === 'debug') {
+      subprocess?.stdout?.on('data', (data: Buffer) => process.stdout.write(data));
+    }
+    if (logger.level === 'debug') {
+      subprocess?.stderr?.on('data', (data: Buffer) => process.stderr.write(data));
+    }
     subprocess.on('error', error => {
       reject(error);
       logger.error(error);

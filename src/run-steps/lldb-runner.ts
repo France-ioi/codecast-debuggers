@@ -17,14 +17,18 @@ export const runStepsWithLLDB = (language: Language, options: RunnerOptions): Pr
     canDigScope: scope => {
       // if (this.language === 'C++')
       const forbiddenScopes = [ 'Registers' ];
+
       return !forbiddenScopes.includes(scope.name);
     },
     canDigVariable: variable => !variable.name.startsWith('std::'),
     afterDestroy: async () => {
       logger.debug('[LLDB StepsRunner] remove executable file');
-      if (executablePath) await fs.promises.unlink(executablePath).catch(() => { /* throws if already deleted */ });
+      if (executablePath) {
+        await fs.promises.unlink(executablePath).catch(() => { /* throws if already deleted */ });
+      }
     },
   });
+
   return runner(options);
 };
 
@@ -56,19 +60,46 @@ const connect = (
   await client.connectAdapter();
 
   logger.debug(5, '[LLDB StepsRunner] initialize client');
-  await client.initialize({
+  const initializeResponse = await client.initialize({
     adapterID: language,
     pathFormat: 'path',
     supportsMemoryEvent: true,
     supportsMemoryReferences: true,
   });
 
+  /**
+   * Initialize Response :  {
+   *   exceptionBreakpointFilters: [
+   *     { default: true, filter: 'cpp_throw', label: 'C++: on throw' },
+   *     { default: false, filter: 'cpp_catch', label: 'C++: on catch' }
+   *   ],
+   *   supportTerminateDebuggee: true,
+   *   supportsCancelRequest: true,
+   *   supportsCompletionsRequest: true,
+   *   supportsConditionalBreakpoints: true,
+   *   supportsConfigurationDoneRequest: true,
+   *   supportsDataBreakpoints: true,
+   *   supportsDelayedStackTraceLoading: true,
+   *   supportsEvaluateForHovers: true,
+   *   supportsFunctionBreakpoints: true,
+   *   supportsGotoTargetsRequest: true,
+   *   supportsHitConditionalBreakpoints: true,
+   *   supportsLogPoints: true,
+   *   supportsReadMemoryRequest: true,
+   *   supportsRestartFrame: true,
+   *   supportsSetVariable: true
+   * }
+   */
+  logger.debug('Initialize Response : ', initializeResponse);
+
   const executablePath = config.compile(programPath).executablePath;
   onExecutablePath(executablePath);
 
   const spawnedTerminalRequest = new Promise<void>((resolve, reject) => {
     client.onRunInTerminalRequest(({ args: [ argv, ...args ], cwd, env, kind, title }) => {
-      if (!argv) throw new Error('argv must be defined');
+      if (!argv) {
+        throw new Error('argv must be defined');
+      }
       logger.debug('[Event] RunInTerminalRequest', { argv, args, cwd, kind, title });
       logger.log(argv, args);
       const subprocess = cp.spawn(argv, args, {
@@ -85,6 +116,7 @@ const connect = (
       // resolve()
       logger.debug(7, '[LLDB StepsRunner] ran requested command in terminal');
       setTimeout(resolve, 1);
+
       // subprocess.stdout.on('data', (data) => logger.debug('[stdout]', data.toString('utf-8')))
       // subprocess.stderr.on('data', (data) => logger.debug('[stderr]', data.toString('utf-8')))
       return Promise.resolve({ processId: subprocess.pid, shellProcessId: process.pid });
@@ -123,12 +155,18 @@ async function spawnAdapterServer(dap: { host: string, port: number }, processes
     const resolveOnMessage = (origin: string) => (data: Buffer) => {
       const message = data.toString('utf-8');
       logger.debug(`DAP server ready (${origin})`, message);
-      if (message.startsWith('Listening on port')) resolve();
+      if (message.startsWith('Listening on port')) {
+        resolve();
+      }
     };
     adapter.stdout.once('data', resolveOnMessage('stdout'));
     adapter.stderr.once('data', resolveOnMessage('stderr'));
-    if (logger.level === 'debug') adapter.stdout.on('data', (data: Buffer) => process.stdout.write(data));
-    if (logger.level === 'debug') adapter.stderr.on('data', (data: Buffer) => process.stderr.write(data));
+    if (logger.level === 'debug') {
+      adapter.stdout.on('data', (data: Buffer) => process.stdout.write(data));
+    }
+    if (logger.level === 'debug') {
+      adapter.stderr.on('data', (data: Buffer) => process.stderr.write(data));
+    }
   });
 }
 
@@ -144,16 +182,18 @@ const configurations: Record<Language, Configuration> = {
       // execSync(disableASLRCommand(), { stdio: 'inherit' })
       const executablePath = removeExt(mainFilePath);
       cp.execSync(`gcc -g ${mainFilePath} -o ${executablePath} -ldl`, { stdio: 'inherit' });
+
       return { executablePath };
     },
     launchArgs: {
-      initCommands: [ 'settings set target.disable-aslr false' ]
+      initCommands: [ 'settings set target.disable-aslr false' ],
     } as DebugProtocol.LaunchRequestArguments,
   },
   cpp: {
     compile: mainFilePath => {
       const executablePath = removeExt(mainFilePath);
       cp.execSync(`g++ -g ${mainFilePath} -o ${executablePath} -ldl`, { stdio: 'inherit' });
+
       return { executablePath };
     },
   },

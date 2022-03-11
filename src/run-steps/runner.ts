@@ -11,6 +11,7 @@ import { Stream } from 'stream';
 enablePatches();
 
 export interface MakeRunnerConfig {
+
   /**
    * Allow per debugger to define how to connect to the Debug Adapter Protocol server.
    * For some it might be a combination of spawning a server and launching the socket debug client
@@ -33,6 +34,7 @@ export interface MakeRunnerConfig {
    * This predicate is injected to allow customization per language.
    */
   canDigScope?: RunStepContext['canDigScope'],
+
   /**
    * Predicates to determine whether to keep a variable in the list and retrieve its details.
    * This predicate is injected to allow customization per language
@@ -46,6 +48,7 @@ export interface MakeRunnerConfig {
   afterDestroy?: () => Promise<void>,
 }
 interface File {
+
   /**
    * a path relative to the project root.
    */
@@ -90,6 +93,7 @@ export const makeRunner = ({
   const steps = new Promise<StepsAcc>(resolve => {
     resolveSteps = (): void => resolve(acc);
   });
+
   return async (options: RunnerOptions) => {
     const processes: cp.ChildProcess[] = [];
     const subscribers: Unsubscribable[] = [];
@@ -132,7 +136,9 @@ export const makeRunner = ({
     const subscriber = client.onStopped(stoppedEvent => {
       logger.debug('[Event] Stopped', stoppedEvent);
       const reasons = [ 'breakpoint', 'step' ];
-      if (!reasons.includes(stoppedEvent.reason) || typeof stoppedEvent.threadId !== 'number') return;
+      if (!reasons.includes(stoppedEvent.reason) || typeof stoppedEvent.threadId !== 'number') {
+        return;
+      }
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
       setSnapshotAndStepIn({
         acc,
@@ -154,6 +160,7 @@ export const makeRunner = ({
     const result = await steps;
 
     logger.debug(5, '[runner] destroy');
+
     try {
       await destroy('runSteps', { destroyed, client, processes, programPath, subscribers, afterDestroy });
     } catch {
@@ -161,6 +168,7 @@ export const makeRunner = ({
     }
 
     logger.debug(6, '[runner] return result');
+
     return result.steps;
   };
 };
@@ -169,10 +177,12 @@ export type Step = Patch[];
 export type Steps = Step[];
 
 export interface StepsAcc {
+
   /**
    * previous snapshot, `{}` only at first step
    */
   previous: Partial<StepSnapshot>,
+
   /**
    * A step is a list of patches computed from previous step and *not* from start
    */
@@ -200,14 +210,19 @@ interface DestroyParams {
   programPath: string,
   afterDestroy: () => Promise<void>,
 }
+
 async function destroy(origin: string, { destroyed, subscribers, processes, client, afterDestroy }: DestroyParams): Promise<void> {
-  if (destroyed) return logger.debug('[StepsRunner] destroy already performed');
+  if (destroyed) {
+    return logger.debug('[StepsRunner] destroy already performed');
+  }
 
   logger.debug('\n');
   logger.debug(`[StepsRunner] Destroy ⋅ ${origin}`);
   subscribers.forEach(subscriber => subscriber.unsubscribe());
   processes.forEach(subprocess => {
-    if (!subprocess.killed) subprocess.kill();
+    if (!subprocess.killed) {
+      subprocess.kill();
+    }
   });
   client.disconnectAdapter();
   await client.disconnect({}).catch(() => { /* throws if already disconnected */ });
@@ -219,6 +234,7 @@ interface SetBreakpointsConfig {
   client: SocketDebugClient,
   programPath: string,
 }
+
 /**
  * Set breakpoint on every line because we cannot know in advance at which line the program will stop first
  * @param {SetBreakpointsConfig} config
@@ -232,8 +248,8 @@ async function setBreakpoints({ client, programPath }: SetBreakpointsConfig): Pr
   let response = await client.setBreakpoints({
     breakpoints: Array.from({ length: lines }, (_, i) => ({ line: i + 1 })),
     source: {
-      path: programPath
-    }
+      path: programPath,
+    },
   });
   logger.debug('[StepsRunner] set breakpoints intermediate response', response);
 
@@ -241,7 +257,9 @@ async function setBreakpoints({ client, programPath }: SetBreakpointsConfig): Pr
     .filter(breakpoint => breakpoint.verified && typeof breakpoint.line === 'number')
     .map(({ line }) => ({ line: line as number }));
 
-  if (verifiedBreakpoints.length === lines) return;
+  if (verifiedBreakpoints.length === lines) {
+    return;
+  }
 
   response = await client.setBreakpoints({
     breakpoints: verifiedBreakpoints,
@@ -261,7 +279,9 @@ const registerEvents = (client: SocketDebugClient, onTerminated: () => void): vo
   client.onContinued(event => logger.debug('[Event] Continued', event));
   client.onExited(event => {
     logger.debug('[Event] Exited', event.exitCode);
-    if (event.exitCode === 0) onTerminated();
+    if (event.exitCode === 0) {
+      onTerminated();
+    }
   });
   client.onOutput(({ output, ...event }) => logger.debug('[Event] Output', JSON.stringify(output), event));
   client.onTerminated(event => {
@@ -276,10 +296,12 @@ const registerEvents = (client: SocketDebugClient, onTerminated: () => void): vo
 };
 
 interface SetSnapshotAndStepInParams {
+
   /**
    * Accumulator to push steps to. Must be an original (not cloned) mutable array
    */
   acc: StepsAcc,
+
   /**
    * absolute paths
    */
@@ -287,8 +309,10 @@ interface SetSnapshotAndStepInParams {
   context: RunStepContext,
   threadId: GetSnapshotParams['threadId'],
 }
+
 async function setSnapshotAndStepIn({ context, acc, filePaths, threadId }: SetSnapshotAndStepInParams): Promise<void> {
   const i = acc.steps.length + 1;
+
   try {
     logger.debug('Execute steps', i);
     const snapshot = await getSnapshot({ context, filePaths, threadId });
@@ -296,6 +320,7 @@ async function setSnapshotAndStepIn({ context, acc, filePaths, threadId }: SetSn
 
     if (snapshot.stackFrames.length > 0) {
       const diff = getDiff(acc.previous, snapshot);
+
       /**
        * Computing the patches is not very straighforward:
        * 1. Compute the diff between previous & current snapshot using recursive-diff because immer doesn't do that
@@ -318,16 +343,19 @@ async function setSnapshotAndStepIn({ context, acc, filePaths, threadId }: SetSn
 }
 
 interface GetSnapshotParams {
+
   /**
    * absolute paths
    */
   filePaths: string[],
   context: RunStepContext,
+
   /**
    * the threadId from which we can extract debug data. Provided in the `onStopped` event
    */
   threadId: number,
 }
+
 async function getSnapshot({ context, filePaths, threadId }: GetSnapshotParams): Promise<StepSnapshot> {
   const result = await context.client.stackTrace({ threadId });
   logger.dir({ filePaths });
@@ -336,6 +364,7 @@ async function getSnapshot({ context, filePaths, threadId }: GetSnapshotParams):
       .filter(isStackFrameOfSourceFile(filePaths))
       .map(stackFrame => getStackFrame({ context, stackFrame }))
   );
+
   return { stackFrames };
 }
 
@@ -343,9 +372,11 @@ interface GetStackFrameParams {
   stackFrame: DebugProtocol.StackFrame,
   context: RunStepContext,
 }
+
 async function getStackFrame({ context, stackFrame }: GetStackFrameParams): Promise<StackFrame> {
   const result = await context.client.scopes({ frameId: stackFrame.id });
   const scopes = await Promise.all(result.scopes.map(scope => getScope({ context, scope })));
+
   return { ...stackFrame, scopes };
 }
 
@@ -353,8 +384,11 @@ interface GetScopeParams {
   scope: DebugProtocol.Scope,
   context: RunStepContext,
 }
+
 async function getScope({ context, scope }: GetScopeParams): Promise<Scope> {
-  if (!context.canDigScope(scope)) return { ...scope, variables: [] };
+  if (!context.canDigScope(scope)) {
+    return { ...scope, variables: [] };
+  }
   const result = await context.client.variables({ variablesReference: scope.variablesReference });
   const isLocalScope = scope.name.startsWith('Local');
   const variablesMaxDepth = isLocalScope ? 3 : 0;
@@ -363,12 +397,14 @@ async function getScope({ context, scope }: GetScopeParams): Promise<Scope> {
     variable,
     maxDepth: variablesMaxDepth,
   })));
+
   return { ...scope, variables };
 }
 
 interface GetVariableParams {
   context: RunStepContext,
   variable: DebugProtocol.Variable,
+
   /**
    * Composite variables (like arrays and object in JS) have children variables. Since they can be very deep,
    * we have to arbitrarily stick to a variable max depth after which we will stop retrieving variable data.
@@ -377,9 +413,12 @@ interface GetVariableParams {
    */
   maxDepth: number,
 }
+
 async function getVariable({ context, maxDepth, variable }: GetVariableParams, currentDepth = 0): Promise<Variable> {
   const shouldGetSubVariables = variable.variablesReference > 0 && currentDepth <= maxDepth;
-  if (!shouldGetSubVariables) return { ...variable, variables: [] };
+  if (!shouldGetSubVariables) {
+    return { ...variable, variables: [] };
+  }
   if (variable.memoryReference) {
     try {
       const memory = await context.client.readMemory({
@@ -391,6 +430,7 @@ async function getVariable({ context, maxDepth, variable }: GetVariableParams, c
       logger.debug(error);
     }
   }
+
   try {
     const result = await context.client.variables({ variablesReference: variable.variablesReference });
     const variables = await Promise.all(result.variables.filter(context.canDigVariable).map(variable => getVariable({
@@ -402,6 +442,7 @@ async function getVariable({ context, maxDepth, variable }: GetVariableParams, c
     return { ...variable, variables };
   } catch (error) {
     logger.dir({ variable, error });
+
     return { ...variable, variables: [] };
   }
 }
