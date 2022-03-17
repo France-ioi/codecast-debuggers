@@ -108,6 +108,7 @@ export const makeRunner = ({
 
     logger.debug('Add stdout:', output);
     if (output.category === 'stdout') last.stdout = [ ...(last?.stdout ?? []), output.output ];
+    if (output.category === 'stderr') last.stderr = [ ...(last?.stderr ?? []), output.output ];
   };
   let resolveSteps: () => void = () => {};
   const steps = new Promise<StepsAcc>(resolve => {
@@ -221,6 +222,7 @@ export type StepsAcc = StepSnapshot[];
 export interface StepSnapshot {
   stackFrames: StackFrame[],
   stdout?: string[],
+  stderr?: string[],
 }
 export interface StackFrame extends DebugProtocol.StackFrame {
   scopes: Scope[],
