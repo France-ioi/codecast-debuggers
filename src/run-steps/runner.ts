@@ -101,25 +101,13 @@ export const makeRunner = ({
   canDigVariable = (): boolean => true,
 }: MakeRunnerConfig): Runner => {
   const destroyed = false;
-  const acc: StepsAcc = {
-    previous: {},
-    steps: [],
-    outputs: [],
-  };
+  const acc: StepsAcc = [];
   const onOutput: Parameters<MakeRunnerConfig['connect']>[0]['onOutput'] = output => {
-    if (!acc.previous.stackFrames) return; // too early to have "real" outputs
-    const [ stackFrame ] = acc.previous.stackFrames;
+    const last = acc.at(-1);
+    if (!last) return; // too early to have "real" outputs
+
     logger.debug('Add stdout:', output);
-    acc.outputs.push({
-      output: output.output,
-      category: output.category,
-      column: output.column ?? stackFrame?.column,
-      data: output.data as unknown,
-      group: output.group,
-      line: output.line ?? stackFrame?.line,
-      source: output.source ?? stackFrame?.source,
-      variablesReference: output.variablesReference,
-    });
+    if (output.category === 'stdout') last.stdout = [ ...(last?.stdout ?? []), output.output ];
   };
   let resolveSteps: () => void = () => {};
   const steps = new Promise<StepsAcc>(resolve => {
@@ -198,8 +186,7 @@ export const makeRunner = ({
 
     logger.debug(6, '[runner] return result');
     return {
-      steps: result.steps,
-      outputs: result.outputs,
+      steps: snapshotsToSteps(result),
     };
   };
 };
@@ -208,27 +195,32 @@ export type Step = Patch[];
 export type Steps = Step[];
 export interface Result {
   steps: Steps,
-  outputs: Output[],
+}
+function snapshotsToSteps(snapshots: StepSnapshot[]): Steps {
+  return snapshots.reduce((acc, current, index) => {
+    const previous = snapshots[index-1] ?? {};
+    const diff = getDiff(previous, current);
+    /**
+     * Computing the patches is not very straighforward:
+     * 1. Compute the diff between previous & current snapshot using recursive-diff because immer doesn't do that
+     * 2. Apply that diff to the ImmerJS draft to extract patches under ImmerJS formats
+     */
+    produce(
+      previous,
+      draft => void applyDiff(draft, diff),
+      patches => void acc.push(patches),
+    );
+    return acc;
+  }, [] as Steps);
 }
 
 type Output = DebugProtocol.OutputEvent['body'];
 
-export interface StepsAcc {
-  /**
-   * previous snapshot, `{}` only at first step
-   */
-  previous: Partial<StepSnapshot>,
-  /**
-   * A step is a list of patches computed from previous step and *not* from start
-   */
-  steps: Steps, // Patches _per step based on previous step_
-  /**
-   * Accumulated outputs
-   */
-  outputs: Output[],
-}
+export type StepsAcc = StepSnapshot[];
+
 export interface StepSnapshot {
   stackFrames: StackFrame[],
+  stdout?: string[],
 }
 export interface StackFrame extends DebugProtocol.StackFrame {
   scopes: Scope[],
@@ -337,26 +329,13 @@ interface SetSnapshotAndStepInParams {
   threadId: GetSnapshotParams['threadId'],
 }
 async function setSnapshotAndStepIn({ context, acc, filePaths, threadId }: SetSnapshotAndStepInParams): Promise<void> {
-  const i = acc.steps.length + 1;
+  const i = acc.length + 1;
   try {
     logger.debug('Execute steps', i);
     const snapshot = await getSnapshot({ context, filePaths, threadId });
     logger.dir({ snapshot }, { colors: true, depth: 10 });
 
-    if (snapshot.stackFrames.length > 0) {
-      const diff = getDiff(acc.previous, snapshot);
-      /**
-       * Computing the patches is not very straighforward:
-       * 1. Compute the diff between previous & current snapshot using recursive-diff because immer doesn't do that
-       * 2. Apply that diff to the ImmerJS draft to extract patches under ImmerJS formats
-       */
-      produce(
-        acc.previous,
-        draft => void applyDiff(draft, diff),
-        patches => void acc.steps.push(patches),
-      );
-      acc.previous = snapshot; // set base for next step
-    }
+    if (snapshot.stackFrames.length > 0) acc.push(snapshot);
 
     snapshot.stackFrames.some(isStackFrameOfSourceFile(filePaths))
       ? await context.client.stepIn({ threadId, granularity: 'instruction' })

@@ -35,12 +35,11 @@ callScript(filePath, inputPath, 'off').then(rawJSON => {
     fs.writeFileSync(__dirname + '/../results/steps.json', rawJSON, 'utf-8');
 
     const result = JSON.parse(rawJSON) as Result;
-    const reconstructedJson = {
-      snapshots: reconstructSnapshotsFromSteps(result.steps),
-      outputs: result.outputs,
-    };
+    const reconstructedJson = reconstructSnapshotsFromSteps(result.steps);
     fs.writeFileSync(__dirname + '/../results/snapshots.json', JSON.stringify(reconstructedJson), 'utf-8');
-  } catch {
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error(error);
     logger.info('could not parse JSON', rawJSON);
   }
 }).catch(error => {
