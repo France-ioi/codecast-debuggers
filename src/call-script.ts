@@ -65,7 +65,7 @@ const dockerRunCommand = (
   inputFilePath: string,
   logLevel: LoggerLevel,
 ): { command: string, args: string[] } => {
-  const projectPath = path.dirname(mainFilePath);
+  //const projectPath = path.dirname(mainFilePath);
   const command = 'docker';
   const args = [
     'run',
@@ -73,10 +73,11 @@ const dockerRunCommand = (
     '--rm',
     '--env',
     `LOG_LEVEL=${logLevel}`,
-    ...mountsPerImage[docker.image].flatMap(toDockerMountArgs),
-    ...toDockerMountArgs({ source: paths.output(paths.selfRoot), target: paths.output(paths.dockerRoot) }),
-    ...toDockerMountArgs({ source: paths.nodeModules(paths.selfRoot), target: paths.nodeModules(paths.dockerRoot) }),
-    ...toDockerMountArgs({ source: path.resolve(paths.selfRoot, projectPath), target: path.resolve(paths.dockerRoot, projectPath) }),
+    // ...mountsPerImage[docker.image].flatMap(toDockerMountArgs),
+    // ...toDockerMountArgs({ source: paths.output(paths.selfRoot), target: paths.output(paths.dockerRoot) }),
+    // ...toDockerMountArgs({ source: paths.nodeModules(paths.selfRoot), target: paths.nodeModules(paths.dockerRoot) }),
+    // ...toDockerMountArgs({ source: path.resolve(paths.selfRoot, projectPath), target: path.resolve(paths.dockerRoot, projectPath) }),
+    ...toDockerMountArgs({ source: paths.root(paths.selfRoot), target: paths.root(paths.dockerRoot) }),
     docker.image,
     mainFilePath,
     inputFilePath,
@@ -88,6 +89,7 @@ const dockerRunCommand = (
 const paths = {
   dockerRoot: '/usr/project',
   selfRoot: process.cwd(),
+  root: (root: string): string => path.resolve(root),
   sources: (root: string): string => path.resolve(root, './sources'),
   output: (root: string): string => path.resolve(root, './out'),
   nodeModules: (root: string): string => path.resolve(root, './node_modules'),
@@ -104,15 +106,15 @@ interface DockerMount {
   target: string,
   readOnly?: boolean,
 }
-const mountsPerImage: Record<DockerImage, DockerMount[]> = {
-  'lldb-debugger': [
-    { source: paths.vscodeLldb(paths.selfRoot), target: paths.vscodeLldb(paths.dockerRoot) },
-  ],
-  'php-debugger': [
-    { source: paths.vscodePhpDebug(paths.selfRoot), target: paths.vscodePhpDebug(paths.dockerRoot) },
-  ],
-  'python-debugger': [],
-};
+// const mountsPerImage: Record<DockerImage, DockerMount[]> = {
+//   'lldb-debugger': [
+//     { source: paths.vscodeLldb(paths.selfRoot), target: paths.vscodeLldb(paths.dockerRoot) },
+//   ],
+//   'php-debugger': [
+//     { source: paths.vscodePhpDebug(paths.selfRoot), target: paths.vscodePhpDebug(paths.dockerRoot) },
+//   ],
+//   'python-debugger': [],
+// };
 
 /**
  * Build docker "--mount" CLI argument

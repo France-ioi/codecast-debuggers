@@ -10,6 +10,13 @@ import { Stream } from 'stream';
 
 enablePatches();
 
+/**
+ * Performance measurements.
+ */
+let snapshotTotalDuration = 0;
+let diffTotalDuration = 0;
+let produceTotalDuration = 0;
+
 export interface MakeRunnerConfig {
 
   /**
@@ -157,7 +164,10 @@ export const makeRunner = ({
     await client.configurationDone({});
 
     logger.debug(4, '[runner] await steps');
+    const debuggingStartTime = process.hrtime();
     const result = await steps;
+    const debuggingDuration = process.hrtime(debuggingStartTime);
+    logger.log('Debugging duration : ', (debuggingDuration[0] + (debuggingDuration[1] / 1000000000)));
 
     logger.debug(5, '[runner] destroy');
 
@@ -168,6 +178,10 @@ export const makeRunner = ({
     }
 
     logger.debug(6, '[runner] return result');
+
+    logger.log('Snapshot total duration (DAP interaction) : ', snapshotTotalDuration);
+    logger.log('Diff total duration : ', diffTotalDuration);
+    logger.log('Produce total duration : ', produceTotalDuration);
 
     return result.steps;
   };
@@ -315,22 +329,34 @@ async function setSnapshotAndStepIn({ context, acc, filePaths, threadId }: SetSn
 
   try {
     logger.debug('Execute steps', i);
+
+    const snapshotStartTime = process.hrtime();
     const snapshot = await getSnapshot({ context, filePaths, threadId });
-    logger.dir({ snapshot }, { colors: true, depth: 10 });
+    const snapshotHrDuration = process.hrtime(snapshotStartTime);
+    snapshotTotalDuration += snapshotHrDuration[0] + (snapshotHrDuration[1] / 1000000000);
+
+    //logger.dir({ snapshot }, { colors: true, depth: 10 });
 
     if (snapshot.stackFrames.length > 0) {
+      const diffStartTime = process.hrtime();
       const diff = getDiff(acc.previous, snapshot);
+      const diffHrDuration = process.hrtime(diffStartTime);
+      diffTotalDuration += diffHrDuration[0] + (diffHrDuration[1] / 1000000000);
 
       /**
        * Computing the patches is not very straighforward:
        * 1. Compute the diff between previous & current snapshot using recursive-diff because immer doesn't do that
        * 2. Apply that diff to the ImmerJS draft to extract patches under ImmerJS formats
        */
+      const produceStartTime = process.hrtime();
       produce(
         acc.previous,
         draft => void applyDiff(draft, diff),
         patches => void acc.steps.push(patches),
       );
+      const produceHrDuration = process.hrtime(produceStartTime);
+      produceTotalDuration += produceHrDuration[0] + (produceHrDuration[1] / 1000000000);
+
       acc.previous = snapshot; // set base for next step
     }
 
@@ -358,7 +384,7 @@ interface GetSnapshotParams {
 
 async function getSnapshot({ context, filePaths, threadId }: GetSnapshotParams): Promise<StepSnapshot> {
   const result = await context.client.stackTrace({ threadId });
-  logger.dir({ filePaths });
+  //logger.dir({ filePaths });
   const stackFrames = await Promise.all(
     result.stackFrames
       .filter(isStackFrameOfSourceFile(filePaths))
@@ -418,17 +444,6 @@ async function getVariable({ context, maxDepth, variable }: GetVariableParams, c
   const shouldGetSubVariables = variable.variablesReference > 0 && currentDepth <= maxDepth;
   if (!shouldGetSubVariables) {
     return { ...variable, variables: [] };
-  }
-  if (variable.memoryReference) {
-    try {
-      const memory = await context.client.readMemory({
-        memoryReference: variable.memoryReference,
-        count: 1,
-      });
-      Object.assign(variable, { memory });
-    } catch (error) {
-      logger.debug(error);
-    }
   }
 
   try {

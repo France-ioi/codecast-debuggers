@@ -37,6 +37,8 @@ if (!language) {
 }
 
 async function main(): Promise<void> {
+  const mainStartTime = process.hrtime();
+
   logger.debug({ language, mainFilePath, inputPath });
 
   if (!mainFilePath) {
@@ -58,6 +60,9 @@ async function main(): Promise<void> {
     files: [],
   });
   logger.result('RESULT_BEGIN', JSON.stringify(result), 'RESULT_END');
+
+  const mainDuration = process.hrtime(mainStartTime);
+  logger.log('Main script duration : ', (mainDuration[0] + (mainDuration[1] / 1000000000)));
 }
 
 /**

@@ -37,6 +37,8 @@ const connect = (
   config: Configuration,
   onExecutablePath: (thePath: string) => void,
 ): MakeRunnerConfig['connect'] => async ({ beforeInitialize, logLevel, processes, programPath, inputPath }) => {
+  const connectLLDBTime = process.hrtime();
+
   const dap = {
     host: 'localhost',
     port: 4711,
@@ -131,6 +133,9 @@ const connect = (
   } as DebugProtocol.LaunchRequestArguments);
 
   await Promise.race([ launched, spawnedTerminalRequest ]);
+
+  const connectLLDBDuration = process.hrtime(connectLLDBTime);
+  logger.log('LLDB compilation and initialization duration : ', (connectLLDBDuration[0] + (connectLLDBDuration[1] / 1000000000)));
 
   return { client };
 };

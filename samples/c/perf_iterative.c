@@ -2,12 +2,12 @@
 
 int main()
 {
-    int tab[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
+    int tab[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
     char test[] = "Test string";
 
-    for (int count = 0; count < 100; count++) {
-        for (int i = 0; i < 16; i++) {
-            for (int j = 0; j < 16; j++) {
+    for (int count = 0; count < 10; count++) {
+        for (int i = 0; i < 10; i++) {
+            for (int j = 0; j < 10; j++) {
                 tab[i] += tab[j];
             }
         }
