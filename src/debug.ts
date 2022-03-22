@@ -30,7 +30,7 @@ if (!inputPath) {
   inputPath = '';
 }
 
-callScript(filePath, inputPath, 'debug').then(rawJSON => {
+callScript(filePath, inputPath, 'off').then(rawJSON => {
   try {
     fs.writeFileSync(__dirname + '/../results/steps.json', rawJSON, 'utf-8');
 
