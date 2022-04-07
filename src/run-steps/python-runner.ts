@@ -128,14 +128,19 @@ async function spawnDebugAdapterServer(
   const debugPyFolderPath = findDebugPyFolder();
 
   return new Promise<void>(resolve => {
-    const subprocess = cp.spawn('python', [
+    const subprocessParams = [
       path.resolve(debugPyFolderPath, 'adapter'),
       '--host',
       dap.host,
       '--port',
       dap.port.toString(),
       '--log-stderr',
-    ], { stdio: [ (inputStream) ? inputStream : 'ignore', 'pipe', 'pipe' ] });
+    ];
+    logger.log('Spawn python', subprocessParams);
+
+    const subprocess = cp.spawn('python', subprocessParams, {
+      stdio: [ (inputStream) ? inputStream : 'ignore', 'pipe', 'pipe' ],
+    });
     processes.push(subprocess);
 
     subprocess.on('error', error => logger.error('Server error:', error));

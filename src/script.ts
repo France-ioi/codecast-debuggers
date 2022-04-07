@@ -70,9 +70,6 @@ async function openInputStream(inputPath: string): Promise<Stream|null> {
       logger.error('Cannot open file ', inputPath, e);
       reject(e);
     });
-    inputStream.on('data', chunk => {
-      logger.debug('Input stream received : ', chunk.toString('ascii'));
-    });
   });
 }
 

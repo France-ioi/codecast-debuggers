@@ -68,7 +68,7 @@ const dockerRunCommand = (
     '--rm',
     '--env',
     `LOG_LEVEL=${logLevel}`,
-    // Commented for now, to be able to get the result of profiling (node --prof option, which creates a file).
+    // Commented for now, tto be able to get he result of profiling (node --prof option, which creates a file).
     // ...mountsPerImage[docker.image].flatMap(toDockerMountArgs),
     // ...toDockerMountArgs({ source: paths.output(paths.selfRoot), target: paths.output(paths.dockerRoot) }),
     // ...toDockerMountArgs({ source: paths.nodeModules(paths.selfRoot), target: paths.nodeModules(paths.dockerRoot) }),

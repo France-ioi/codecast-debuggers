@@ -45,7 +45,13 @@ npm run debug ./samples/cpp/hello_world.cpp # For C++
 npm run debug ./samples/php/hello_world.php # For PHP
 npm run debug ./samples/python/hello_world.py # For Python
 
-npm run debug ./samples/python/hello_world.py -- --breakpoints 1,3 # Specifying breakpoints
+# With breakpoints :
+npm run debug ./samples/python/hello_world.py -- --breakpoints 1,3
+
+# With inputs :
+npm run debug samples/python/input.py -- -i samples/python/inputs/input.txt
+npm run debug samples/c/input.c -- -i samples/c/inputs/input.txt
+npm run debug samples/cpp/input.cpp -- -i samples/cpp/inputs/input.txt
 ```
 
 ### Programmatically
