@@ -28,17 +28,17 @@ describe('samples hello_world.py', () => {
         column: 1,
         source: {
           path: '/usr/project/samples/python/hello_world.py',
-          sourceReference: 0
+          sourceReference: 0,
         },
         scopes: expect.arrayContaining([
           expect.objectContaining({
             name: 'Locals',
             variablesReference: expect.any(Number),
             expensive: expect.any(Boolean),
-            variables: []
+            variables: [],
           }),
         ]),
-      }
+      },
     ]));
     expect(snapshots[1]?.stackFrames).toEqual(expect.arrayContaining([
       {
@@ -54,10 +54,10 @@ describe('samples hello_world.py', () => {
             name: 'Locals',
             variablesReference: expect.any(Number),
             expensive: expect.any(Boolean),
-            variables: []
+            variables: [],
           }),
         ]),
-      }
+      },
     ]));
     expect(snapshots[2]?.stackFrames).toEqual(expect.arrayContaining([
       {
@@ -80,12 +80,12 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'x',
                 variablesReference: expect.any(Number),
-                variables: []
-              }
-            ]
+                variables: [],
+              },
+            ],
           }),
         ]),
-      }
+      },
     ]));
     expect(snapshots[3]?.stackFrames).toEqual(expect.arrayContaining([
       {
@@ -108,7 +108,7 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'x',
                 variablesReference: expect.any(Number),
-                variables: []
+                variables: [],
               },
               {
                 name: 'y',
@@ -116,12 +116,12 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'y',
                 variablesReference: expect.any(Number),
-                variables: []
-              }
-            ]
+                variables: [],
+              },
+            ],
           }),
         ]),
-      }
+      },
     ]));
     expect(snapshots[4]?.stackFrames).toEqual(expect.arrayContaining([
       {
@@ -144,7 +144,7 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'i',
                 variablesReference: expect.any(Number),
-                variables: []
+                variables: [],
               },
               {
                 name: 'x',
@@ -152,7 +152,7 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'x',
                 variablesReference: expect.any(Number),
-                variables: []
+                variables: [],
               },
               {
                 name: 'y',
@@ -160,12 +160,12 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'y',
                 variablesReference: expect.any(Number),
-                variables: []
-              }
-            ]
+                variables: [],
+              },
+            ],
           }),
         ]),
-      }
+      },
     ]));
     expect(snapshots[5]?.stackFrames).toEqual(expect.arrayContaining([
       {
@@ -188,7 +188,7 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'i',
                 variablesReference: expect.any(Number),
-                variables: []
+                variables: [],
               },
               {
                 name: 'x',
@@ -196,7 +196,7 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'x',
                 variablesReference: expect.any(Number),
-                variables: []
+                variables: [],
               },
               {
                 name: 'y',
@@ -204,12 +204,12 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'y',
                 variablesReference: expect.any(Number),
-                variables: []
-              }
-            ]
+                variables: [],
+              },
+            ],
           }),
         ]),
-      }
+      },
     ]));
     expect(snapshots[6]?.stackFrames).toEqual(expect.arrayContaining([
       {
@@ -232,7 +232,7 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'i',
                 variablesReference: expect.any(Number),
-                variables: []
+                variables: [],
               },
               {
                 name: 'x',
@@ -240,7 +240,7 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'x',
                 variablesReference: expect.any(Number),
-                variables: []
+                variables: [],
               },
               {
                 name: 'y',
@@ -248,12 +248,12 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'y',
                 variablesReference: expect.any(Number),
-                variables: []
-              }
-            ]
+                variables: [],
+              },
+            ],
           }),
         ]),
-      }
+      },
     ]));
     expect(snapshots[7]?.stackFrames).toEqual(expect.arrayContaining([
       {
@@ -276,7 +276,7 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'i',
                 variablesReference: expect.any(Number),
-                variables: []
+                variables: [],
               },
               {
                 name: 'x',
@@ -284,7 +284,7 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'x',
                 variablesReference: expect.any(Number),
-                variables: []
+                variables: [],
               },
               {
                 name: 'y',
@@ -292,12 +292,12 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'y',
                 variablesReference: expect.any(Number),
-                variables: []
-              }
-            ]
+                variables: [],
+              },
+            ],
           }),
         ]),
-      }
+      },
     ]));
     expect(snapshots[8]?.stackFrames).toEqual(expect.arrayContaining([
       {
@@ -320,7 +320,7 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'i',
                 variablesReference: expect.any(Number),
-                variables: []
+                variables: [],
               },
               {
                 name: 'x',
@@ -328,7 +328,7 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'x',
                 variablesReference: expect.any(Number),
-                variables: []
+                variables: [],
               },
               {
                 name: 'y',
@@ -336,12 +336,12 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'y',
                 variablesReference: expect.any(Number),
-                variables: []
-              }
-            ]
+                variables: [],
+              },
+            ],
           }),
         ]),
-      }
+      },
     ]));
     expect(snapshots[9]?.stackFrames).toEqual(expect.arrayContaining([
       {
@@ -364,7 +364,7 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'i',
                 variablesReference: expect.any(Number),
-                variables: []
+                variables: [],
               },
               {
                 name: 'x',
@@ -372,7 +372,7 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'x',
                 variablesReference: expect.any(Number),
-                variables: []
+                variables: [],
               },
               {
                 name: 'y',
@@ -380,12 +380,12 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'y',
                 variablesReference: expect.any(Number),
-                variables: []
-              }
-            ]
+                variables: [],
+              },
+            ],
           }),
         ]),
-      }
+      },
     ]));
     expect(snapshots[10]?.stackFrames).toEqual(expect.arrayContaining([
       {
@@ -408,7 +408,7 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'i',
                 variablesReference: expect.any(Number),
-                variables: []
+                variables: [],
               },
               {
                 name: 'x',
@@ -416,7 +416,7 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'x',
                 variablesReference: expect.any(Number),
-                variables: []
+                variables: [],
               },
               {
                 name: 'y',
@@ -424,12 +424,12 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'y',
                 variablesReference: expect.any(Number),
-                variables: []
-              }
-            ]
+                variables: [],
+              },
+            ],
           }),
         ]),
-      }
+      },
     ]));
     expect(snapshots[11]?.stackFrames).toEqual(expect.arrayContaining([
       {
@@ -452,7 +452,7 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'i',
                 variablesReference: expect.any(Number),
-                variables: []
+                variables: [],
               },
               {
                 name: 'x',
@@ -460,7 +460,7 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'x',
                 variablesReference: expect.any(Number),
-                variables: []
+                variables: [],
               },
               {
                 name: 'y',
@@ -468,12 +468,12 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'y',
                 variablesReference: expect.any(Number),
-                variables: []
-              }
-            ]
+                variables: [],
+              },
+            ],
           }),
         ]),
-      }
+      },
     ]));
     expect(snapshots[12]?.stackFrames).toEqual(expect.arrayContaining([
       {
@@ -496,7 +496,7 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'i',
                 variablesReference: expect.any(Number),
-                variables: []
+                variables: [],
               },
               {
                 name: 'x',
@@ -504,7 +504,7 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'x',
                 variablesReference: expect.any(Number),
-                variables: []
+                variables: [],
               },
               {
                 name: 'y',
@@ -512,12 +512,12 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'y',
                 variablesReference: expect.any(Number),
-                variables: []
-              }
-            ]
+                variables: [],
+              },
+            ],
           }),
         ]),
-      }
+      },
     ]));
     expect(snapshots[13]?.stackFrames).toEqual(expect.arrayContaining([
       {
@@ -540,7 +540,7 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'i',
                 variablesReference: expect.any(Number),
-                variables: []
+                variables: [],
               },
               {
                 name: 'x',
@@ -548,7 +548,7 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'x',
                 variablesReference: expect.any(Number),
-                variables: []
+                variables: [],
               },
               {
                 name: 'y',
@@ -556,12 +556,12 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'y',
                 variablesReference: expect.any(Number),
-                variables: []
-              }
-            ]
+                variables: [],
+              },
+            ],
           }),
         ]),
-      }
+      },
     ]));
     expect(snapshots[14]?.stackFrames).toEqual(expect.arrayContaining([
       {
@@ -584,7 +584,7 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'i',
                 variablesReference: expect.any(Number),
-                variables: []
+                variables: [],
               },
               {
                 name: 'x',
@@ -592,7 +592,7 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'x',
                 variablesReference: expect.any(Number),
-                variables: []
+                variables: [],
               },
               {
                 name: 'y',
@@ -600,12 +600,12 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'y',
                 variablesReference: expect.any(Number),
-                variables: []
-              }
-            ]
+                variables: [],
+              },
+            ],
           }),
         ]),
-      }
+      },
     ]));
   });
 });

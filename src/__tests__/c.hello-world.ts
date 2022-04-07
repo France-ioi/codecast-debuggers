@@ -26,7 +26,7 @@ describe('samples hello_world.c', () => {
         name: 'main',
         source: {
           name: 'hello_world.c',
-          path: '/usr/project/samples/c/hello_world.c'
+          path: '/usr/project/samples/c/hello_world.c',
         },
         scopes: expect.arrayContaining([
           {
@@ -41,12 +41,12 @@ describe('samples hello_world.c', () => {
                 value: '0',
                 memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
-                variables: []
-              }
+                variables: [],
+              },
             ],
           },
         ]),
-      }
+      },
     ]));
     expect(snapshots[1]?.stackFrames).toEqual(expect.arrayContaining([
       {
@@ -56,7 +56,7 @@ describe('samples hello_world.c', () => {
         name: 'main',
         source: {
           name: 'hello_world.c',
-          path: '/usr/project/samples/c/hello_world.c'
+          path: '/usr/project/samples/c/hello_world.c',
         },
         scopes: expect.arrayContaining([
           {
@@ -71,12 +71,12 @@ describe('samples hello_world.c', () => {
                 value: '1',
                 memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
-                variables: []
-              }
-            ]
+                variables: [],
+              },
+            ],
           },
-        ])
-      }
+        ]),
+      },
     ]));
     expect(snapshots[2]?.stackFrames).toEqual(expect.arrayContaining([
       {
@@ -86,7 +86,7 @@ describe('samples hello_world.c', () => {
         name: 'main',
         source: {
           name: 'hello_world.c',
-          path: '/usr/project/samples/c/hello_world.c'
+          path: '/usr/project/samples/c/hello_world.c',
         },
         scopes: expect.arrayContaining([
           {
@@ -101,12 +101,12 @@ describe('samples hello_world.c', () => {
                 value: '1',
                 memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
-                variables: []
-              }
-            ]
+                variables: [],
+              },
+            ],
           },
         ]),
-      }
+      },
     ]));
     expect(snapshots[3]?.stackFrames).toEqual(expect.arrayContaining([
       {
@@ -116,7 +116,7 @@ describe('samples hello_world.c', () => {
         name: 'main',
         source: {
           name: 'hello_world.c',
-          path: '/usr/project/samples/c/hello_world.c'
+          path: '/usr/project/samples/c/hello_world.c',
         },
         scopes: expect.arrayContaining([
           {
@@ -131,12 +131,12 @@ describe('samples hello_world.c', () => {
                 value: '2',
                 memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
-                variables: []
-              }
-            ]
+                variables: [],
+              },
+            ],
           },
         ]),
-      }
+      },
     ]));
     expect(snapshots[4]?.stackFrames).toEqual(expect.arrayContaining([
       {
@@ -146,7 +146,7 @@ describe('samples hello_world.c', () => {
         name: 'main',
         source: {
           name: 'hello_world.c',
-          path: '/usr/project/samples/c/hello_world.c'
+          path: '/usr/project/samples/c/hello_world.c',
         },
         scopes: expect.arrayContaining([
           {
@@ -161,12 +161,12 @@ describe('samples hello_world.c', () => {
                 value: '2',
                 memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
-                variables: []
-              }
-            ]
+                variables: [],
+              },
+            ],
           },
         ]),
-      }
+      },
     ]));
     expect(snapshots[5]?.stackFrames).toEqual(expect.arrayContaining([
       {
@@ -176,7 +176,7 @@ describe('samples hello_world.c', () => {
         name: 'main',
         source: {
           name: 'hello_world.c',
-          path: '/usr/project/samples/c/hello_world.c'
+          path: '/usr/project/samples/c/hello_world.c',
         },
         scopes: expect.arrayContaining([
           {
@@ -191,12 +191,12 @@ describe('samples hello_world.c', () => {
                 value: '3',
                 memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
-                variables: []
-              }
-            ]
+                variables: [],
+              },
+            ],
           },
         ]),
-      }
+      },
     ]));
     expect(snapshots[6]?.stackFrames).toEqual(expect.arrayContaining([
       {
@@ -206,7 +206,7 @@ describe('samples hello_world.c', () => {
         name: 'main',
         source: {
           name: 'hello_world.c',
-          path: '/usr/project/samples/c/hello_world.c'
+          path: '/usr/project/samples/c/hello_world.c',
         },
         scopes: expect.arrayContaining([
           {
@@ -221,12 +221,12 @@ describe('samples hello_world.c', () => {
                 value: '3',
                 memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
-                variables: []
-              }
-            ]
+                variables: [],
+              },
+            ],
           },
         ]),
-      }
+      },
     ]));
   });
 });

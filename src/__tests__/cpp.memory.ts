@@ -25,17 +25,17 @@ describe('samples memory.cpp', () => {
         name: expect.any(String),
         source: {
           name: 'memory.cpp',
-          path: '/usr/project/samples/cpp/memory.cpp'
+          path: '/usr/project/samples/cpp/memory.cpp',
         },
         scopes: expect.arrayContaining([
           {
             expensive: expect.any(Boolean),
             name: 'Local',
             variablesReference: expect.any(Number),
-            variables: []
+            variables: [],
           },
         ]),
-      }
+      },
     ]));
     expect(snapshots[1]?.stackFrames).toEqual(expect.arrayContaining([
       {
@@ -45,17 +45,17 @@ describe('samples memory.cpp', () => {
         name: expect.any(String),
         source: {
           name: 'memory.cpp',
-          path: '/usr/project/samples/cpp/memory.cpp'
+          path: '/usr/project/samples/cpp/memory.cpp',
         },
         scopes: expect.arrayContaining([
           {
             expensive: expect.any(Boolean),
             name: 'Local',
             variablesReference: expect.any(Number),
-            variables: []
+            variables: [],
           },
         ]),
-      }
+      },
     ]));
     expect(snapshots[2]?.stackFrames).toEqual(expect.arrayContaining([
       {
@@ -65,7 +65,7 @@ describe('samples memory.cpp', () => {
         name: expect.any(String),
         source: {
           name: 'memory.cpp',
-          path: '/usr/project/samples/cpp/memory.cpp'
+          path: '/usr/project/samples/cpp/memory.cpp',
         },
         scopes: expect.arrayContaining([
           {
@@ -83,17 +83,17 @@ describe('samples memory.cpp', () => {
         name: expect.any(String),
         source: {
           name: 'memory.cpp',
-          path: '/usr/project/samples/cpp/memory.cpp'
+          path: '/usr/project/samples/cpp/memory.cpp',
         },
         scopes: expect.arrayContaining([
           {
             expensive: expect.any(Boolean),
             name: 'Local',
             variablesReference: expect.any(Number),
-            variables: []
+            variables: [],
           },
         ]),
-      }
+      },
     ]));
     expect(snapshots[3]?.stackFrames).toEqual(expect.arrayContaining([
       {
@@ -103,17 +103,17 @@ describe('samples memory.cpp', () => {
         name: expect.any(String),
         source: {
           name: 'memory.cpp',
-          path: '/usr/project/samples/cpp/memory.cpp'
+          path: '/usr/project/samples/cpp/memory.cpp',
         },
         scopes: expect.arrayContaining([
           {
             expensive: expect.any(Boolean),
             name: 'Local',
             variablesReference: expect.any(Number),
-            variables: []
+            variables: [],
           },
         ]),
-      }
+      },
     ]));
     expect(snapshots[4]?.stackFrames).toEqual(expect.arrayContaining([
       {
@@ -123,7 +123,7 @@ describe('samples memory.cpp', () => {
         name: 'main',
         source: {
           name: 'memory.cpp',
-          path: '/usr/project/samples/cpp/memory.cpp'
+          path: '/usr/project/samples/cpp/memory.cpp',
         },
         scopes: expect.arrayContaining([
           {
@@ -140,7 +140,7 @@ describe('samples memory.cpp', () => {
                 memory: {
                   address: expect.any(String),
                   data: expect.any(String),
-                  unreadableBytes: expect.any(Number)
+                  unreadableBytes: expect.any(Number),
                 },
                 variablesReference: expect.any(Number),
                 variables: [
@@ -150,14 +150,14 @@ describe('samples memory.cpp', () => {
                     type: 'float',
                     value: '<parent is NULL>',
                     variablesReference: expect.any(Number),
-                    variables: []
-                  }
-                ]
-              }
-            ]
+                    variables: [],
+                  },
+                ],
+              },
+            ],
           },
         ]),
-      }
+      },
     ]));
     expect(snapshots[5]?.stackFrames).toEqual(expect.arrayContaining([
       {
@@ -167,7 +167,7 @@ describe('samples memory.cpp', () => {
         name: 'main',
         source: {
           name: 'memory.cpp',
-          path: '/usr/project/samples/cpp/memory.cpp'
+          path: '/usr/project/samples/cpp/memory.cpp',
         },
         scopes: expect.arrayContaining([
           {
@@ -184,7 +184,7 @@ describe('samples memory.cpp', () => {
                 memory: {
                   address: expect.any(String),
                   data: expect.any(String),
-                  unreadableBytes: expect.any(Number)
+                  unreadableBytes: expect.any(Number),
                 },
                 variablesReference: expect.any(Number),
                 variables: [
@@ -194,14 +194,14 @@ describe('samples memory.cpp', () => {
                     type: 'float',
                     value: '<parent is NULL>',
                     variablesReference: expect.any(Number),
-                    variables: []
-                  }
-                ]
-              }
-            ]
+                    variables: [],
+                  },
+                ],
+              },
+            ],
           },
         ]),
-      }
+      },
     ]));
     expect(snapshots[6]?.stackFrames).toEqual(expect.arrayContaining([
       {
@@ -211,7 +211,7 @@ describe('samples memory.cpp', () => {
         name: 'main',
         source: {
           name: 'memory.cpp',
-          path: '/usr/project/samples/cpp/memory.cpp'
+          path: '/usr/project/samples/cpp/memory.cpp',
         },
         scopes: expect.arrayContaining([
           {
@@ -228,7 +228,7 @@ describe('samples memory.cpp', () => {
                 memory: {
                   address: expect.any(String),
                   data: expect.any(String),
-                  unreadableBytes: expect.any(Number)
+                  unreadableBytes: expect.any(Number),
                 },
                 variablesReference: expect.any(Number),
                 variables: [
@@ -239,14 +239,14 @@ describe('samples memory.cpp', () => {
                     value: '0',
                     memoryReference: expect.any(String),
                     variablesReference: expect.any(Number),
-                    variables: []
-                  }
-                ]
-              }
-            ]
+                    variables: [],
+                  },
+                ],
+              },
+            ],
           },
         ]),
-      }
+      },
     ]));
     expect(snapshots[7]?.stackFrames).toEqual(expect.arrayContaining([
       {
@@ -256,7 +256,7 @@ describe('samples memory.cpp', () => {
         name: 'main',
         source: {
           name: 'memory.cpp',
-          path: '/usr/project/samples/cpp/memory.cpp'
+          path: '/usr/project/samples/cpp/memory.cpp',
         },
         scopes: expect.arrayContaining([
           {
@@ -273,7 +273,7 @@ describe('samples memory.cpp', () => {
                 memory: {
                   address: expect.any(String),
                   data: expect.any(String),
-                  unreadableBytes: expect.any(Number)
+                  unreadableBytes: expect.any(Number),
                 },
                 variablesReference: expect.any(Number),
                 variables: [
@@ -284,14 +284,14 @@ describe('samples memory.cpp', () => {
                     value: '42',
                     memoryReference: expect.any(String),
                     variablesReference: expect.any(Number),
-                    variables: []
-                  }
-                ]
-              }
-            ]
+                    variables: [],
+                  },
+                ],
+              },
+            ],
           },
         ]),
-      }
+      },
     ]));
     expect(snapshots[8]?.stackFrames).toEqual(expect.arrayContaining([
       {
@@ -301,7 +301,7 @@ describe('samples memory.cpp', () => {
         name: 'main',
         source: {
           name: 'memory.cpp',
-          path: '/usr/project/samples/cpp/memory.cpp'
+          path: '/usr/project/samples/cpp/memory.cpp',
         },
         scopes: expect.arrayContaining([
           {
@@ -318,7 +318,7 @@ describe('samples memory.cpp', () => {
                 memory: {
                   address: expect.any(String),
                   data: expect.any(String),
-                  unreadableBytes: expect.any(Number)
+                  unreadableBytes: expect.any(Number),
                 },
                 variablesReference: expect.any(Number),
                 variables: [
@@ -329,14 +329,14 @@ describe('samples memory.cpp', () => {
                     value: '42',
                     memoryReference: expect.any(String),
                     variablesReference: expect.any(Number),
-                    variables: []
-                  }
-                ]
-              }
-            ]
+                    variables: [],
+                  },
+                ],
+              },
+            ],
           },
         ]),
-      }
+      },
     ]));
     expect(snapshots[9]?.stackFrames).toEqual(expect.arrayContaining([
       {
@@ -346,7 +346,7 @@ describe('samples memory.cpp', () => {
         name: 'main',
         source: {
           name: 'memory.cpp',
-          path: '/usr/project/samples/cpp/memory.cpp'
+          path: '/usr/project/samples/cpp/memory.cpp',
         },
         scopes: expect.arrayContaining([
           {
@@ -363,7 +363,7 @@ describe('samples memory.cpp', () => {
                 memory: {
                   address: expect.any(String),
                   data: expect.any(String),
-                  unreadableBytes: expect.any(Number)
+                  unreadableBytes: expect.any(Number),
                 },
                 variablesReference: expect.any(Number),
                 variables: [
@@ -374,14 +374,14 @@ describe('samples memory.cpp', () => {
                     value: '0',
                     memoryReference: expect.any(String),
                     variablesReference: expect.any(Number),
-                    variables: []
-                  }
-                ]
-              }
-            ]
+                    variables: [],
+                  },
+                ],
+              },
+            ],
           },
         ]),
-      }
+      },
     ]));
   });
 });

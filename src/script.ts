@@ -22,7 +22,9 @@ if (lastArgument && path.extname(lastArgument) == '.txt') {
   inputPath = '';
 }
 
-if (!mainFilePath) throw new Error('mainFilePath must be defined');
+if (!mainFilePath) {
+  throw new Error('mainFilePath must be defined');
+}
 if (!inputPath) {
   inputPath = '';
 }
@@ -37,7 +39,9 @@ if (!language) {
 async function main(): Promise<void> {
   logger.debug({ language, mainFilePath, inputPath });
 
-  if (!mainFilePath) throw new Error('mainFilePath must be defined');
+  if (!mainFilePath) {
+    throw new Error('mainFilePath must be defined');
+  }
   if (inputPath) {
     inputPath = path.resolve(inputPath);
   } else {

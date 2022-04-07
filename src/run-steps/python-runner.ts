@@ -44,7 +44,9 @@ const connect: MakeRunnerConfig['connect'] = async ({ processes, programPath, lo
   client.onOutput(event => {
     // Sometimes PyDebug emits stdouts and \n separately,
     // because of that we have to filter out only-whitespace outputs
-    if ((event.category === 'stdout' || event.category === 'stderr') && event.output.trim()) onOutput(event);
+    if ((event.category === 'stdout' || event.category === 'stderr') && event.output.trim()) {
+      onOutput(event);
+    }
   });
 
   const initialized = new Promise<void>(resolve => {
@@ -120,11 +122,15 @@ async function spawnDebugAdapterServer(
 
 function findDebugPyFolder(): string {
   const found = findByName('debugpy').find(folderPath => folderPath.includes('python')); // take first with "python"
-  if (!found) throw new Error('DebugPy folder not found');
+  if (!found) {
+    throw new Error('DebugPy folder not found');
+  }
+
   return found;
 }
 
 function findByName(name: string, root = '/'): string[] {
   const output = cp.execSync(`find ${root} -name ${name}`, { stdio: [ 'ignore', 'pipe', 'ignore' ] });
+
   return output.toString('utf-8').split('\n').slice(0, -1); // last one is empty string, remove it
 }

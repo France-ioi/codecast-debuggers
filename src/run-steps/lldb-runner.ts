@@ -18,14 +18,18 @@ export const runStepsWithLLDB = (language: Language, options: RunnerOptions): Pr
     canDigScope: scope => {
       // if (this.language === 'C++')
       const forbiddenScopes = [ 'Registers' ];
+
       return !forbiddenScopes.includes(scope.name);
     },
     canDigVariable: variable => !variable.name.startsWith('std::'),
     afterDestroy: async () => {
       logger.debug('[LLDB StepsRunner] remove executable file');
-      if (executablePath) await fs.promises.unlink(executablePath).catch(() => { /* throws if already deleted */ });
+      if (executablePath) {
+        await fs.promises.unlink(executablePath).catch(() => { /* throws if already deleted */ });
+      }
     },
   });
+
   return runner(options);
 };
 
@@ -69,7 +73,9 @@ const connect = (
 
   const spawnedTerminalRequest = new Promise<void>((resolve, reject) => {
     client.onRunInTerminalRequest(({ args: [ argv, ...args ], cwd, env, kind, title }) => {
-      if (!argv) throw new Error('argv must be defined');
+      if (!argv) {
+        throw new Error('argv must be defined');
+      }
       logger.debug('[Event] RunInTerminalRequest', { argv, args, cwd, kind, title });
       logger.log(argv, args);
       const subprocess = pty.spawn('bash', [], {
@@ -89,7 +95,9 @@ const connect = (
       });
       subprocess.onExit(e => {
         logger.debug('[on exit]', e);
-        if (e.exitCode > 0) reject(new Error(`Terminal request exited with code ${e.exitCode}`));
+        if (e.exitCode > 0) {
+          reject(new Error(`Terminal request exited with code ${e.exitCode}`));
+        }
       });
       subprocess.write(`${argv} ${args.join(' ')}\r`);
 
@@ -97,6 +105,7 @@ const connect = (
 
       logger.debug(7, '[LLDB StepsRunner] ran requested command in terminal');
       setTimeout(resolve, 1);
+
       // subprocess.stdout.on('data', (data) => logger.debug('[stdout]', data.toString('utf-8')))
       // subprocess.stderr.on('data', (data) => logger.debug('[stderr]', data.toString('utf-8')))
       return Promise.resolve({ processId: subprocess.pid, shellProcessId: process.pid });
@@ -135,12 +144,18 @@ async function spawnAdapterServer(dap: { host: string, port: number }, processes
     const resolveOnMessage = (origin: string) => (data: Buffer) => {
       const message = data.toString('utf-8');
       logger.debug(`DAP server ready (${origin})`, message);
-      if (message.startsWith('Listening on port')) resolve();
+      if (message.startsWith('Listening on port')) {
+        resolve();
+      }
     };
     adapter.stdout.once('data', resolveOnMessage('stdout'));
     adapter.stderr.once('data', resolveOnMessage('stderr'));
-    if (logger.level === 'debug') adapter.stdout.on('data', (data: Buffer) => process.stdout.write(data));
-    if (logger.level === 'debug') adapter.stderr.on('data', (data: Buffer) => process.stderr.write(data));
+    if (logger.level === 'debug') {
+      adapter.stdout.on('data', (data: Buffer) => process.stdout.write(data));
+    }
+    if (logger.level === 'debug') {
+      adapter.stderr.on('data', (data: Buffer) => process.stderr.write(data));
+    }
   });
 }
 
@@ -156,16 +171,18 @@ const configurations: Record<Language, Configuration> = {
       // execSync(disableASLRCommand(), { stdio: 'inherit' })
       const executablePath = removeExt(mainFilePath);
       cp.execSync(`gcc -g ${mainFilePath} -o ${executablePath} -ldl`, { stdio: 'inherit' });
+
       return { executablePath };
     },
     launchArgs: {
-      initCommands: [ 'settings set target.disable-aslr false' ]
+      initCommands: [ 'settings set target.disable-aslr false' ],
     } as DebugProtocol.LaunchRequestArguments,
   },
   cpp: {
     compile: mainFilePath => {
       const executablePath = removeExt(mainFilePath);
       cp.execSync(`g++ -g ${mainFilePath} -o ${executablePath} -ldl`, { stdio: 'inherit' });
+
       return { executablePath };
     },
   },

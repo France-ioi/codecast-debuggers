@@ -29,6 +29,7 @@ export function callScript(mainFilePath: string, inputFilePath: string, logLevel
   logger.debug(result);
 
   const rawJSON = result.slice(result.indexOf(begin) + begin.length, result.indexOf(end)).trim();
+
   return Promise.resolve(rawJSON);
 }
 
@@ -47,7 +48,7 @@ const dockerRunConfigs: Record<LanguageExtension, DockerRunConfig> = {
   },
   '.py': {
     image: 'python-debugger',
-  }
+  },
 };
 
 /**
@@ -125,5 +126,6 @@ const toDockerMountArgs = ({ type = 'bind', source, target, readOnly }: DockerMo
     `target=${target}`,
     readOnly && 'readonly',
   ].filter(Boolean).join(',');
+
   return [ '--mount', arg ];
 };
