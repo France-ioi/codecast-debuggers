@@ -3,22 +3,21 @@ import path from 'path';
 import cp from 'child_process';
 import { logger, LoggerLevel } from './logger';
 import { LanguageExtension, toLanguageExtension } from './run-steps/factory';
-
+import { CommandLineOptions } from './command_arguments';
 
 /**
  * Call script
- * @param {string} mainFilePath path to main file of the project to debug
- * @param {string} inputFilePath path to input file of the project to debug
- * @param {LoggerLevel} [logLevel]
- * @returns {Promise<string>} stringified JSON
+ * @param commandOptions The command line options.
+ * @param {LoggerLevel} [logLevel] The log level.
+ * @returns {Promise<string>} The stringified JSON.
  */
-export function callScript(mainFilePath: string, inputFilePath: string, logLevel: LoggerLevel = 'off'): Promise<string> {
-  const fileExtension = toLanguageExtension(path.extname(mainFilePath));
+export function callScript(commandOptions: CommandLineOptions, logLevel: LoggerLevel = 'off'): Promise<string> {
+  const fileExtension = toLanguageExtension(path.extname(commandOptions.sourcePath));
   const docker = dockerRunConfigs[fileExtension];
 
   logger.debug(logLevel);
 
-  const { command, args } = dockerRunCommand(docker, mainFilePath, inputFilePath, logLevel);
+  const { command, args } = dockerRunCommand(docker, logLevel);
 
   const begin = 'RESULT_BEGIN';
   const end = 'RESULT_END';
@@ -29,6 +28,7 @@ export function callScript(mainFilePath: string, inputFilePath: string, logLevel
   logger.debug(result);
 
   const rawJSON = result.slice(result.indexOf(begin) + begin.length, result.indexOf(end)).trim();
+
   return Promise.resolve(rawJSON);
 }
 
@@ -47,39 +47,37 @@ const dockerRunConfigs: Record<LanguageExtension, DockerRunConfig> = {
   },
   '.py': {
     image: 'python-debugger',
-  }
+  },
 };
 
 /**
- * Returns the docker run command
+ * Returns the docker run command.
  * @param {DockerRunConfig} docker
- * @param {string} mainFilePath
- * @param {string} inputFilePath
- * @param {LoggerLevel} logLevel
+ * @param {LoggerLevel} logLevel The log leveL.
  * @returns {{ command: string, args: string[] }}
  */
 const dockerRunCommand = (
   docker: DockerRunConfig,
-  mainFilePath: string,
-  inputFilePath: string,
   logLevel: LoggerLevel,
 ): { command: string, args: string[] } => {
-  const projectPath = path.dirname(mainFilePath);
+  //const projectPath = path.dirname(mainFilePath);
   const command = 'docker';
-  const args = [
+  let args = [
     'run',
     '-it',
     '--rm',
     '--env',
     `LOG_LEVEL=${logLevel}`,
-    ...mountsPerImage[docker.image].flatMap(toDockerMountArgs),
-    ...toDockerMountArgs({ source: paths.output(paths.selfRoot), target: paths.output(paths.dockerRoot) }),
-    ...toDockerMountArgs({ source: paths.nodeModules(paths.selfRoot), target: paths.nodeModules(paths.dockerRoot) }),
-    ...toDockerMountArgs({ source: path.resolve(paths.selfRoot, projectPath), target: path.resolve(paths.dockerRoot, projectPath) }),
+    // Commented for now, to be able to get the result of profiling (node --prof option, which creates a file).
+    // ...mountsPerImage[docker.image].flatMap(toDockerMountArgs),
+    // ...toDockerMountArgs({ source: paths.output(paths.selfRoot), target: paths.output(paths.dockerRoot) }),
+    // ...toDockerMountArgs({ source: paths.nodeModules(paths.selfRoot), target: paths.nodeModules(paths.dockerRoot) }),
+    // ...toDockerMountArgs({ source: path.resolve(paths.selfRoot, projectPath), target: path.resolve(paths.dockerRoot, projectPath) }),
+    ...toDockerMountArgs({ source: paths.root(paths.selfRoot), target: paths.root(paths.dockerRoot) }),
     docker.image,
-    mainFilePath,
-    inputFilePath,
   ].filter(Boolean);
+
+  args = args.concat(process.argv.slice(2));
 
   return { command, args };
 };
@@ -87,6 +85,7 @@ const dockerRunCommand = (
 const paths = {
   dockerRoot: '/usr/project',
   selfRoot: process.cwd(),
+  root: (root: string): string => path.resolve(root),
   sources: (root: string): string => path.resolve(root, './sources'),
   output: (root: string): string => path.resolve(root, './out'),
   nodeModules: (root: string): string => path.resolve(root, './node_modules'),
@@ -103,15 +102,15 @@ interface DockerMount {
   target: string,
   readOnly?: boolean,
 }
-const mountsPerImage: Record<DockerImage, DockerMount[]> = {
-  'lldb-debugger': [
-    { source: paths.vscodeLldb(paths.selfRoot), target: paths.vscodeLldb(paths.dockerRoot) },
-  ],
-  'php-debugger': [
-    { source: paths.vscodePhpDebug(paths.selfRoot), target: paths.vscodePhpDebug(paths.dockerRoot) },
-  ],
-  'python-debugger': [],
-};
+// const mountsPerImage: Record<DockerImage, DockerMount[]> = {
+//   'lldb-debugger': [
+//     { source: paths.vscodeLldb(paths.selfRoot), target: paths.vscodeLldb(paths.dockerRoot) },
+//   ],
+//   'php-debugger': [
+//     { source: paths.vscodePhpDebug(paths.selfRoot), target: paths.vscodePhpDebug(paths.dockerRoot) },
+//   ],
+//   'python-debugger': [],
+// };
 
 /**
  * Build docker "--mount" CLI argument
@@ -125,5 +124,6 @@ const toDockerMountArgs = ({ type = 'bind', source, target, readOnly }: DockerMo
     `target=${target}`,
     readOnly && 'readonly',
   ].filter(Boolean).join(',');
+
   return [ '--mount', arg ];
 };

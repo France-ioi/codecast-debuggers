@@ -4,7 +4,7 @@ const levels = {
   debug: 'debug',
   off: 'off',
   on: 'on',
-  verbose: 'verbose'
+  verbose: 'verbose',
 } as const;
 export type LoggerLevel = keyof typeof levels;
 

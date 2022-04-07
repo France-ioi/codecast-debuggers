@@ -8,6 +8,7 @@ export function reconstructSnapshotsFromSteps(steps: Steps): StepSnapshot[] {
     const previous = acc[acc.length-1] ?? {};
     const snapshot = applyPatches(previous, patches) as StepSnapshot;
     acc.push(snapshot);
+
     return acc;
   }, [] as StepSnapshot[]);
 }

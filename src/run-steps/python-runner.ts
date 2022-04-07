@@ -44,7 +44,9 @@ const connect: MakeRunnerConfig['connect'] = async ({ processes, programPath, lo
   client.onOutput(event => {
     // Sometimes PyDebug emits stdouts and \n separately,
     // because of that we have to filter out only-whitespace outputs
-    if ((event.category === 'stdout' || event.category === 'stderr') && event.output.trim()) onOutput(event);
+    if ((event.category === 'stdout' || event.category === 'stderr') && event.output.trim()) {
+      onOutput(event);
+    }
   });
 
   const initialized = new Promise<void>(resolve => {
@@ -61,17 +63,51 @@ const connect: MakeRunnerConfig['connect'] = async ({ processes, programPath, lo
   await client.connectAdapter();
 
   logger.debug(5, '[Python StepsRunner] initialize client');
-  await client.initialize({
+  const initializeResponse = await client.initialize({
     adapterID: language,
     pathFormat: 'path',
     supportsMemoryEvent: true,
     supportsMemoryReferences: true,
   });
 
+  /**
+   * Initialize Response :  {
+   *   supportsCompletionsRequest: true,
+   *   supportsConditionalBreakpoints: true,
+   *   supportsConfigurationDoneRequest: true,
+   *   supportsDebuggerProperties: true,
+   *   supportsDelayedStackTraceLoading: true,
+   *   supportsEvaluateForHovers: true,
+   *   supportsExceptionInfoRequest: true,
+   *   supportsExceptionOptions: true,
+   *   supportsFunctionBreakpoints: true,
+   *   supportsHitConditionalBreakpoints: true,
+   *   supportsLogPoints: true,
+   *   supportsModulesRequest: true,
+   *   supportsSetExpression: true,
+   *   supportsSetVariable: true,
+   *   supportsValueFormattingOptions: true,
+   *   supportsTerminateDebuggee: true,
+   *   supportsGotoTargetsRequest: true,
+   *   supportsClipboardContext: true,
+   *   exceptionBreakpointFilters: [
+   *     { filter: 'raised', label: 'Raised Exceptions', default: false },
+   *     { filter: 'uncaught', label: 'Uncaught Exceptions', default: true },
+   *     {
+   *       filter: 'userUnhandled',
+   *       label: 'User Uncaught Exceptions',
+   *       default: false
+   *     }
+   *   ],
+   *   supportsStepInTargetsRequest: true
+   * }
+   */
+  logger.debug('Initialize Response : ', initializeResponse);
+
   logger.debug(6, '[Python StepsRunner] launch client');
   const launched = client.launch({
     program: programPath,
-    justMyCode: true,
+    justMyCode: false,
   } as DebugProtocol.LaunchRequestArguments);
 
   await Promise.race([
@@ -120,11 +156,15 @@ async function spawnDebugAdapterServer(
 
 function findDebugPyFolder(): string {
   const found = findByName('debugpy').find(folderPath => folderPath.includes('python')); // take first with "python"
-  if (!found) throw new Error('DebugPy folder not found');
+  if (!found) {
+    throw new Error('DebugPy folder not found');
+  }
+
   return found;
 }
 
 function findByName(name: string, root = '/'): string[] {
   const output = cp.execSync(`find ${root} -name ${name}`, { stdio: [ 'ignore', 'pipe', 'ignore' ] });
+
   return output.toString('utf-8').split('\n').slice(0, -1); // last one is empty string, remove it
 }

@@ -6,7 +6,13 @@ import { reconstructSnapshotsFromSteps } from '../reconstruct-snapshots';
 describe('samples function_rec.cpp', () => {
   let snapshots!: StepSnapshot[];
   beforeAll(async () => {
-    const stringified = await callScript('./samples/cpp/function_rec.cpp', '', 'off');
+    const stringified = await callScript({
+      sourcePath: './samples/cpp/function_rec.c',
+      inputPath: '',
+      breakpoints: '*',
+      help: false,
+    }, 'off');
+
     const result = JSON.parse(stringified) as Result;
     snapshots = reconstructSnapshotsFromSteps(result.steps);
   });
@@ -25,17 +31,17 @@ describe('samples function_rec.cpp', () => {
         name: expect.any(String),
         source: {
           name: 'function_rec.cpp',
-          path: '/usr/project/samples/cpp/function_rec.cpp'
+          path: '/usr/project/samples/cpp/function_rec.cpp',
         },
         scopes: expect.arrayContaining([
           {
             expensive: expect.any(Boolean),
             name: 'Local',
             variablesReference: expect.any(Number),
-            variables: []
-          }
+            variables: [],
+          },
         ]),
-      }
+      },
     ]));
     expect(snapshots[1]?.stackFrames).toEqual(expect.arrayContaining([
       {
@@ -45,17 +51,17 @@ describe('samples function_rec.cpp', () => {
         name: expect.any(String),
         source: {
           name: 'function_rec.cpp',
-          path: '/usr/project/samples/cpp/function_rec.cpp'
+          path: '/usr/project/samples/cpp/function_rec.cpp',
         },
         scopes: expect.arrayContaining([
           {
             expensive: expect.any(Boolean),
             name: 'Local',
             variablesReference: expect.any(Number),
-            variables: []
-          }
+            variables: [],
+          },
         ]),
-      }
+      },
     ]));
     expect(snapshots[2]?.stackFrames).toEqual(expect.arrayContaining([
       {
@@ -65,15 +71,15 @@ describe('samples function_rec.cpp', () => {
         name: expect.any(String),
         source: {
           name: 'function_rec.cpp',
-          path: '/usr/project/samples/cpp/function_rec.cpp'
+          path: '/usr/project/samples/cpp/function_rec.cpp',
         },
         scopes: expect.arrayContaining([
           {
             expensive: expect.any(Boolean),
             name: 'Local',
             variablesReference: expect.any(Number),
-            variables: expect.any(Array)
-          }
+            variables: expect.any(Array),
+          },
         ]),
       },
       {
@@ -83,17 +89,17 @@ describe('samples function_rec.cpp', () => {
         name: expect.any(String),
         source: {
           name: 'function_rec.cpp',
-          path: '/usr/project/samples/cpp/function_rec.cpp'
+          path: '/usr/project/samples/cpp/function_rec.cpp',
         },
         scopes: expect.arrayContaining([
           {
             expensive: expect.any(Boolean),
             name: 'Local',
             variablesReference: expect.any(Number),
-            variables: []
-          }
+            variables: [],
+          },
         ]),
-      }
+      },
     ]));
     expect(snapshots[3]?.stackFrames).toEqual(expect.arrayContaining([
       {
@@ -103,17 +109,17 @@ describe('samples function_rec.cpp', () => {
         name: expect.any(String),
         source: {
           name: 'function_rec.cpp',
-          path: '/usr/project/samples/cpp/function_rec.cpp'
+          path: '/usr/project/samples/cpp/function_rec.cpp',
         },
         scopes: expect.arrayContaining([
           {
             expensive: expect.any(Boolean),
             name: 'Local',
             variablesReference: expect.any(Number),
-            variables: []
-          }
+            variables: [],
+          },
         ]),
-      }
+      },
     ]));
     expect(snapshots[4]?.stackFrames).toEqual(expect.arrayContaining([
       {
@@ -123,17 +129,17 @@ describe('samples function_rec.cpp', () => {
         name: 'main',
         source: {
           name: 'function_rec.cpp',
-          path: '/usr/project/samples/cpp/function_rec.cpp'
+          path: '/usr/project/samples/cpp/function_rec.cpp',
         },
         scopes: expect.arrayContaining([
           {
             expensive: expect.any(Boolean),
             name: 'Local',
             variablesReference: expect.any(Number),
-            variables: []
-          }
+            variables: [],
+          },
         ]),
-      }
+      },
     ]));
     expect(snapshots[5]?.stackFrames).toEqual(expect.arrayContaining([
       {
@@ -143,7 +149,7 @@ describe('samples function_rec.cpp', () => {
         name: 'fact(int)',
         source: {
           name: 'function_rec.cpp',
-          path: '/usr/project/samples/cpp/function_rec.cpp'
+          path: '/usr/project/samples/cpp/function_rec.cpp',
         },
         scopes: expect.arrayContaining([
           {
@@ -158,10 +164,10 @@ describe('samples function_rec.cpp', () => {
                 value: '3',
                 memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
-                variables: []
-              }
-            ]
-          }
+                variables: [],
+              },
+            ],
+          },
         ]),
       },
       {
@@ -171,17 +177,17 @@ describe('samples function_rec.cpp', () => {
         name: 'main',
         source: {
           name: 'function_rec.cpp',
-          path: '/usr/project/samples/cpp/function_rec.cpp'
+          path: '/usr/project/samples/cpp/function_rec.cpp',
         },
         scopes: expect.arrayContaining([
           {
             expensive: expect.any(Boolean),
             name: 'Local',
             variablesReference: expect.any(Number),
-            variables: []
-          }
+            variables: [],
+          },
         ]),
-      }
+      },
     ]));
     expect(snapshots[6]?.stackFrames).toEqual(expect.arrayContaining([
       {
@@ -191,7 +197,7 @@ describe('samples function_rec.cpp', () => {
         name: 'fact(int)',
         source: {
           name: 'function_rec.cpp',
-          path: '/usr/project/samples/cpp/function_rec.cpp'
+          path: '/usr/project/samples/cpp/function_rec.cpp',
         },
         scopes: expect.arrayContaining([
           {
@@ -206,10 +212,10 @@ describe('samples function_rec.cpp', () => {
                 value: '3',
                 memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
-                variables: []
-              }
-            ]
-          }
+                variables: [],
+              },
+            ],
+          },
         ]),
       },
       {
@@ -219,17 +225,17 @@ describe('samples function_rec.cpp', () => {
         name: 'main',
         source: {
           name: 'function_rec.cpp',
-          path: '/usr/project/samples/cpp/function_rec.cpp'
+          path: '/usr/project/samples/cpp/function_rec.cpp',
         },
         scopes: expect.arrayContaining([
           {
             expensive: expect.any(Boolean),
             name: 'Local',
             variablesReference: expect.any(Number),
-            variables: []
-          }
+            variables: [],
+          },
         ]),
-      }
+      },
     ]));
     expect(snapshots[7]?.stackFrames).toEqual(expect.arrayContaining([
       {
@@ -239,7 +245,7 @@ describe('samples function_rec.cpp', () => {
         name: 'fact(int)',
         source: {
           name: 'function_rec.cpp',
-          path: '/usr/project/samples/cpp/function_rec.cpp'
+          path: '/usr/project/samples/cpp/function_rec.cpp',
         },
         scopes: expect.arrayContaining([
           {
@@ -254,10 +260,10 @@ describe('samples function_rec.cpp', () => {
                 value: '2',
                 memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
-                variables: []
-              }
-            ]
-          }
+                variables: [],
+              },
+            ],
+          },
         ]),
       },
       {
@@ -267,7 +273,7 @@ describe('samples function_rec.cpp', () => {
         name: 'fact(int)',
         source: {
           name: 'function_rec.cpp',
-          path: '/usr/project/samples/cpp/function_rec.cpp'
+          path: '/usr/project/samples/cpp/function_rec.cpp',
         },
         scopes: expect.arrayContaining([
           {
@@ -282,10 +288,10 @@ describe('samples function_rec.cpp', () => {
                 value: '3',
                 memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
-                variables: []
-              }
-            ]
-          }
+                variables: [],
+              },
+            ],
+          },
         ]),
       },
       {
@@ -295,17 +301,17 @@ describe('samples function_rec.cpp', () => {
         name: 'main',
         source: {
           name: 'function_rec.cpp',
-          path: '/usr/project/samples/cpp/function_rec.cpp'
+          path: '/usr/project/samples/cpp/function_rec.cpp',
         },
         scopes: expect.arrayContaining([
           {
             expensive: expect.any(Boolean),
             name: 'Local',
             variablesReference: expect.any(Number),
-            variables: []
-          }
+            variables: [],
+          },
         ]),
-      }
+      },
     ]));
     expect(snapshots[8]?.stackFrames).toEqual(expect.arrayContaining([
       {
@@ -315,7 +321,7 @@ describe('samples function_rec.cpp', () => {
         name: 'fact(int)',
         source: {
           name: 'function_rec.cpp',
-          path: '/usr/project/samples/cpp/function_rec.cpp'
+          path: '/usr/project/samples/cpp/function_rec.cpp',
         },
         scopes: expect.arrayContaining([
           {
@@ -330,10 +336,10 @@ describe('samples function_rec.cpp', () => {
                 value: '2',
                 memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
-                variables: []
-              }
-            ]
-          }
+                variables: [],
+              },
+            ],
+          },
         ]),
       },
       {
@@ -343,7 +349,7 @@ describe('samples function_rec.cpp', () => {
         name: 'fact(int)',
         source: {
           name: 'function_rec.cpp',
-          path: '/usr/project/samples/cpp/function_rec.cpp'
+          path: '/usr/project/samples/cpp/function_rec.cpp',
         },
         scopes: expect.arrayContaining([
           {
@@ -358,10 +364,10 @@ describe('samples function_rec.cpp', () => {
                 value: '3',
                 memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
-                variables: []
-              }
-            ]
-          }
+                variables: [],
+              },
+            ],
+          },
         ]),
       },
       {
@@ -371,17 +377,17 @@ describe('samples function_rec.cpp', () => {
         name: 'main',
         source: {
           name: 'function_rec.cpp',
-          path: '/usr/project/samples/cpp/function_rec.cpp'
+          path: '/usr/project/samples/cpp/function_rec.cpp',
         },
         scopes: expect.arrayContaining([
           {
             expensive: expect.any(Boolean),
             name: 'Local',
             variablesReference: expect.any(Number),
-            variables: []
-          }
+            variables: [],
+          },
         ]),
-      }
+      },
     ]));
     expect(snapshots[9]?.stackFrames).toEqual(expect.arrayContaining([
       {
@@ -391,7 +397,7 @@ describe('samples function_rec.cpp', () => {
         name: 'fact(int)',
         source: {
           name: 'function_rec.cpp',
-          path: '/usr/project/samples/cpp/function_rec.cpp'
+          path: '/usr/project/samples/cpp/function_rec.cpp',
         },
         scopes: expect.arrayContaining([
           {
@@ -406,10 +412,10 @@ describe('samples function_rec.cpp', () => {
                 value: '1',
                 memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
-                variables: []
-              }
-            ]
-          }
+                variables: [],
+              },
+            ],
+          },
         ]),
       },
       {
@@ -419,7 +425,7 @@ describe('samples function_rec.cpp', () => {
         name: 'fact(int)',
         source: {
           name: 'function_rec.cpp',
-          path: '/usr/project/samples/cpp/function_rec.cpp'
+          path: '/usr/project/samples/cpp/function_rec.cpp',
         },
         scopes: expect.arrayContaining([
           {
@@ -434,10 +440,10 @@ describe('samples function_rec.cpp', () => {
                 value: '2',
                 memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
-                variables: []
-              }
-            ]
-          }
+                variables: [],
+              },
+            ],
+          },
         ]),
       },
       {
@@ -447,7 +453,7 @@ describe('samples function_rec.cpp', () => {
         name: 'fact(int)',
         source: {
           name: 'function_rec.cpp',
-          path: '/usr/project/samples/cpp/function_rec.cpp'
+          path: '/usr/project/samples/cpp/function_rec.cpp',
         },
         scopes: expect.arrayContaining([
           {
@@ -462,10 +468,10 @@ describe('samples function_rec.cpp', () => {
                 value: '3',
                 memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
-                variables: []
-              }
-            ]
-          }
+                variables: [],
+              },
+            ],
+          },
         ]),
       },
       {
@@ -475,17 +481,17 @@ describe('samples function_rec.cpp', () => {
         name: 'main',
         source: {
           name: 'function_rec.cpp',
-          path: '/usr/project/samples/cpp/function_rec.cpp'
+          path: '/usr/project/samples/cpp/function_rec.cpp',
         },
         scopes: expect.arrayContaining([
           {
             expensive: expect.any(Boolean),
             name: 'Local',
             variablesReference: expect.any(Number),
-            variables: []
-          }
+            variables: [],
+          },
         ]),
-      }
+      },
     ]));
     expect(snapshots[10]?.stackFrames).toEqual(expect.arrayContaining([
       {
@@ -495,7 +501,7 @@ describe('samples function_rec.cpp', () => {
         name: 'fact(int)',
         source: {
           name: 'function_rec.cpp',
-          path: '/usr/project/samples/cpp/function_rec.cpp'
+          path: '/usr/project/samples/cpp/function_rec.cpp',
         },
         scopes: expect.arrayContaining([
           {
@@ -510,10 +516,10 @@ describe('samples function_rec.cpp', () => {
                 value: '1',
                 memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
-                variables: []
-              }
-            ]
-          }
+                variables: [],
+              },
+            ],
+          },
         ]),
       },
       {
@@ -523,7 +529,7 @@ describe('samples function_rec.cpp', () => {
         name: 'fact(int)',
         source: {
           name: 'function_rec.cpp',
-          path: '/usr/project/samples/cpp/function_rec.cpp'
+          path: '/usr/project/samples/cpp/function_rec.cpp',
         },
         scopes: expect.arrayContaining([
           {
@@ -538,10 +544,10 @@ describe('samples function_rec.cpp', () => {
                 value: '2',
                 memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
-                variables: []
-              }
-            ]
-          }
+                variables: [],
+              },
+            ],
+          },
         ]),
       },
       {
@@ -551,7 +557,7 @@ describe('samples function_rec.cpp', () => {
         name: 'fact(int)',
         source: {
           name: 'function_rec.cpp',
-          path: '/usr/project/samples/cpp/function_rec.cpp'
+          path: '/usr/project/samples/cpp/function_rec.cpp',
         },
         scopes: expect.arrayContaining([
           {
@@ -566,10 +572,10 @@ describe('samples function_rec.cpp', () => {
                 value: '3',
                 memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
-                variables: []
-              }
-            ]
-          }
+                variables: [],
+              },
+            ],
+          },
         ]),
       },
       {
@@ -579,17 +585,17 @@ describe('samples function_rec.cpp', () => {
         name: 'main',
         source: {
           name: 'function_rec.cpp',
-          path: '/usr/project/samples/cpp/function_rec.cpp'
+          path: '/usr/project/samples/cpp/function_rec.cpp',
         },
         scopes: expect.arrayContaining([
           {
             expensive: expect.any(Boolean),
             name: 'Local',
             variablesReference: expect.any(Number),
-            variables: []
-          }
+            variables: [],
+          },
         ]),
-      }
+      },
     ]));
     expect(snapshots[11]?.stackFrames).toEqual(expect.arrayContaining([
       {
@@ -599,7 +605,7 @@ describe('samples function_rec.cpp', () => {
         name: 'fact(int)',
         source: {
           name: 'function_rec.cpp',
-          path: '/usr/project/samples/cpp/function_rec.cpp'
+          path: '/usr/project/samples/cpp/function_rec.cpp',
         },
         scopes: expect.arrayContaining([
           {
@@ -614,10 +620,10 @@ describe('samples function_rec.cpp', () => {
                 value: '1',
                 memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
-                variables: []
-              }
-            ]
-          }
+                variables: [],
+              },
+            ],
+          },
         ]),
       },
       {
@@ -627,7 +633,7 @@ describe('samples function_rec.cpp', () => {
         name: 'fact(int)',
         source: {
           name: 'function_rec.cpp',
-          path: '/usr/project/samples/cpp/function_rec.cpp'
+          path: '/usr/project/samples/cpp/function_rec.cpp',
         },
         scopes: expect.arrayContaining([
           {
@@ -642,10 +648,10 @@ describe('samples function_rec.cpp', () => {
                 value: '2',
                 memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
-                variables: []
-              }
-            ]
-          }
+                variables: [],
+              },
+            ],
+          },
         ]),
       },
       {
@@ -655,7 +661,7 @@ describe('samples function_rec.cpp', () => {
         name: 'fact(int)',
         source: {
           name: 'function_rec.cpp',
-          path: '/usr/project/samples/cpp/function_rec.cpp'
+          path: '/usr/project/samples/cpp/function_rec.cpp',
         },
         scopes: expect.arrayContaining([
           {
@@ -670,10 +676,10 @@ describe('samples function_rec.cpp', () => {
                 value: '3',
                 memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
-                variables: []
-              }
-            ]
-          }
+                variables: [],
+              },
+            ],
+          },
         ]),
       },
       {
@@ -683,17 +689,17 @@ describe('samples function_rec.cpp', () => {
         name: 'main',
         source: {
           name: 'function_rec.cpp',
-          path: '/usr/project/samples/cpp/function_rec.cpp'
+          path: '/usr/project/samples/cpp/function_rec.cpp',
         },
         scopes: expect.arrayContaining([
           {
             expensive: expect.any(Boolean),
             name: 'Local',
             variablesReference: expect.any(Number),
-            variables: []
-          }
+            variables: [],
+          },
         ]),
-      }
+      },
     ]));
     expect(snapshots[12]?.stackFrames).toEqual(expect.arrayContaining([
       {
@@ -703,7 +709,7 @@ describe('samples function_rec.cpp', () => {
         name: 'fact(int)',
         source: {
           name: 'function_rec.cpp',
-          path: '/usr/project/samples/cpp/function_rec.cpp'
+          path: '/usr/project/samples/cpp/function_rec.cpp',
         },
         scopes: expect.arrayContaining([
           {
@@ -718,10 +724,10 @@ describe('samples function_rec.cpp', () => {
                 value: '2',
                 memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
-                variables: []
-              }
-            ]
-          }
+                variables: [],
+              },
+            ],
+          },
         ]),
       },
       {
@@ -731,7 +737,7 @@ describe('samples function_rec.cpp', () => {
         name: 'fact(int)',
         source: {
           name: 'function_rec.cpp',
-          path: '/usr/project/samples/cpp/function_rec.cpp'
+          path: '/usr/project/samples/cpp/function_rec.cpp',
         },
         scopes: expect.arrayContaining([
           {
@@ -746,10 +752,10 @@ describe('samples function_rec.cpp', () => {
                 value: '3',
                 memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
-                variables: []
-              }
-            ]
-          }
+                variables: [],
+              },
+            ],
+          },
         ]),
       },
       {
@@ -759,17 +765,17 @@ describe('samples function_rec.cpp', () => {
         name: 'main',
         source: {
           name: 'function_rec.cpp',
-          path: '/usr/project/samples/cpp/function_rec.cpp'
+          path: '/usr/project/samples/cpp/function_rec.cpp',
         },
         scopes: expect.arrayContaining([
           {
             expensive: expect.any(Boolean),
             name: 'Local',
             variablesReference: expect.any(Number),
-            variables: []
-          }
+            variables: [],
+          },
         ]),
-      }
+      },
     ]));
     expect(snapshots[13]?.stackFrames).toEqual(expect.arrayContaining([
       {
@@ -779,7 +785,7 @@ describe('samples function_rec.cpp', () => {
         name: 'fact(int)',
         source: {
           name: 'function_rec.cpp',
-          path: '/usr/project/samples/cpp/function_rec.cpp'
+          path: '/usr/project/samples/cpp/function_rec.cpp',
         },
         scopes: expect.arrayContaining([
           {
@@ -794,10 +800,10 @@ describe('samples function_rec.cpp', () => {
                 value: '2',
                 memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
-                variables: []
-              }
-            ]
-          }
+                variables: [],
+              },
+            ],
+          },
         ]),
       },
       {
@@ -807,7 +813,7 @@ describe('samples function_rec.cpp', () => {
         name: 'fact(int)',
         source: {
           name: 'function_rec.cpp',
-          path: '/usr/project/samples/cpp/function_rec.cpp'
+          path: '/usr/project/samples/cpp/function_rec.cpp',
         },
         scopes: expect.arrayContaining([
           {
@@ -822,10 +828,10 @@ describe('samples function_rec.cpp', () => {
                 value: '3',
                 memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
-                variables: []
-              }
-            ]
-          }
+                variables: [],
+              },
+            ],
+          },
         ]),
       },
       {
@@ -835,17 +841,17 @@ describe('samples function_rec.cpp', () => {
         name: 'main',
         source: {
           name: 'function_rec.cpp',
-          path: '/usr/project/samples/cpp/function_rec.cpp'
+          path: '/usr/project/samples/cpp/function_rec.cpp',
         },
         scopes: expect.arrayContaining([
           {
             expensive: expect.any(Boolean),
             name: 'Local',
             variablesReference: expect.any(Number),
-            variables: []
-          }
+            variables: [],
+          },
         ]),
-      }
+      },
     ]));
     expect(snapshots[14]?.stackFrames).toEqual(expect.arrayContaining([
       {
@@ -855,7 +861,7 @@ describe('samples function_rec.cpp', () => {
         name: 'fact(int)',
         source: {
           name: 'function_rec.cpp',
-          path: '/usr/project/samples/cpp/function_rec.cpp'
+          path: '/usr/project/samples/cpp/function_rec.cpp',
         },
         scopes: expect.arrayContaining([
           {
@@ -870,10 +876,10 @@ describe('samples function_rec.cpp', () => {
                 value: '3',
                 memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
-                variables: []
-              }
-            ]
-          }
+                variables: [],
+              },
+            ],
+          },
         ]),
       },
       {
@@ -883,17 +889,17 @@ describe('samples function_rec.cpp', () => {
         name: 'main',
         source: {
           name: 'function_rec.cpp',
-          path: '/usr/project/samples/cpp/function_rec.cpp'
+          path: '/usr/project/samples/cpp/function_rec.cpp',
         },
         scopes: expect.arrayContaining([
           {
             expensive: expect.any(Boolean),
             name: 'Local',
             variablesReference: expect.any(Number),
-            variables: []
-          }
+            variables: [],
+          },
         ]),
-      }
+      },
     ]));
     expect(snapshots[15]?.stackFrames).toEqual(expect.arrayContaining([
       {
@@ -903,7 +909,7 @@ describe('samples function_rec.cpp', () => {
         name: 'fact(int)',
         source: {
           name: 'function_rec.cpp',
-          path: '/usr/project/samples/cpp/function_rec.cpp'
+          path: '/usr/project/samples/cpp/function_rec.cpp',
         },
         scopes: expect.arrayContaining([
           {
@@ -918,10 +924,10 @@ describe('samples function_rec.cpp', () => {
                 value: '3',
                 memoryReference: expect.any(String),
                 variablesReference: expect.any(Number),
-                variables: []
-              }
-            ]
-          }
+                variables: [],
+              },
+            ],
+          },
         ]),
       },
       {
@@ -931,17 +937,17 @@ describe('samples function_rec.cpp', () => {
         name: 'main',
         source: {
           name: 'function_rec.cpp',
-          path: '/usr/project/samples/cpp/function_rec.cpp'
+          path: '/usr/project/samples/cpp/function_rec.cpp',
         },
         scopes: expect.arrayContaining([
           {
             expensive: expect.any(Boolean),
             name: 'Local',
             variablesReference: expect.any(Number),
-            variables: []
-          }
+            variables: [],
+          },
         ]),
-      }
+      },
     ]));
     expect(snapshots[16]?.stackFrames).toEqual(expect.arrayContaining([
       {
@@ -951,17 +957,17 @@ describe('samples function_rec.cpp', () => {
         name: 'main',
         source: {
           name: 'function_rec.cpp',
-          path: '/usr/project/samples/cpp/function_rec.cpp'
+          path: '/usr/project/samples/cpp/function_rec.cpp',
         },
         scopes: expect.arrayContaining([
           {
             expensive: expect.any(Boolean),
             name: 'Local',
             variablesReference: expect.any(Number),
-            variables: []
-          }
+            variables: [],
+          },
         ]),
-      }
+      },
     ]));
     expect(snapshots[17]?.stackFrames).toEqual(expect.arrayContaining([
       {
@@ -971,17 +977,17 @@ describe('samples function_rec.cpp', () => {
         name: 'main',
         source: {
           name: 'function_rec.cpp',
-          path: '/usr/project/samples/cpp/function_rec.cpp'
+          path: '/usr/project/samples/cpp/function_rec.cpp',
         },
         scopes: expect.arrayContaining([
           {
             expensive: expect.any(Boolean),
             name: 'Local',
             variablesReference: expect.any(Number),
-            variables: []
-          }
+            variables: [],
+          },
         ]),
-      }
+      },
     ]));
   });
 });
