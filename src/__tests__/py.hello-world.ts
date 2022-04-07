@@ -1,21 +1,50 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { callScript } from '../call-script';
-import { Steps, StepSnapshot } from '../run-steps/runner';
+import { Result, StepSnapshot } from '../run-steps/runner';
 import { reconstructSnapshotsFromSteps } from '../reconstruct-snapshots';
 
 describe('samples hello_world.py', () => {
-  let result!: StepSnapshot[];
+  let snapshots!: StepSnapshot[];
   beforeAll(async () => {
     const stringified = await callScript('./samples/python/hello_world.py', '', 'off');
-    result = reconstructSnapshotsFromSteps(JSON.parse(stringified) as Steps);
+    const result = JSON.parse(stringified) as Result;
+    snapshots = reconstructSnapshotsFromSteps(result.steps);
   });
 
-  it('should have a valid result', () => {
-    expect(result[0]?.stackFrames).toEqual(expect.arrayContaining([
+  it('should have valid outputs', () => {
+    expect(snapshots.filter(step => step.stdout || step.stderr)).toHaveLength(4);
+    expect(snapshots[5]?.stdout).toEqual([ expect.stringContaining('Number: 0') ]);
+    expect(snapshots[8]?.stdout).toEqual([ expect.stringContaining('Number: 2') ]);
+    expect(snapshots[11]?.stdout).toEqual([ expect.stringContaining('Number: 4') ]);
+    expect(snapshots[14]?.stderr).toEqual([ expect.stringContaining('Goodbye world') ]);
+  });
+
+  it('should have valid steps', () => {
+    expect(snapshots[0]?.stackFrames).toEqual(expect.arrayContaining([
+      {
+        id: 2,
+        name: '<module>',
+        line: 1,
+        column: 1,
+        source: {
+          path: '/usr/project/samples/python/hello_world.py',
+          sourceReference: 0
+        },
+        scopes: expect.arrayContaining([
+          expect.objectContaining({
+            name: 'Locals',
+            variablesReference: expect.any(Number),
+            expensive: expect.any(Boolean),
+            variables: []
+          }),
+        ]),
+      }
+    ]));
+    expect(snapshots[1]?.stackFrames).toEqual(expect.arrayContaining([
       {
         id: expect.any(Number),
         name: '<module>',
-        line: 1,
+        line: 3,
         column: 1,
         source: expect.objectContaining({
           path: '/usr/project/samples/python/hello_world.py',
@@ -30,11 +59,11 @@ describe('samples hello_world.py', () => {
         ]),
       }
     ]));
-    expect(result[1]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(snapshots[2]?.stackFrames).toEqual(expect.arrayContaining([
       {
         id: expect.any(Number),
         name: '<module>',
-        line: 2,
+        line: 4,
         column: 1,
         source: expect.objectContaining({
           path: '/usr/project/samples/python/hello_world.py',
@@ -58,11 +87,11 @@ describe('samples hello_world.py', () => {
         ]),
       }
     ]));
-    expect(result[2]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(snapshots[3]?.stackFrames).toEqual(expect.arrayContaining([
       {
         id: expect.any(Number),
         name: '<module>',
-        line: 3,
+        line: 5,
         column: 1,
         source: expect.objectContaining({
           path: '/usr/project/samples/python/hello_world.py',
@@ -94,11 +123,11 @@ describe('samples hello_world.py', () => {
         ]),
       }
     ]));
-    expect(result[3]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(snapshots[4]?.stackFrames).toEqual(expect.arrayContaining([
       {
         id: expect.any(Number),
         name: '<module>',
-        line: 4,
+        line: 6,
         column: 1,
         source: expect.objectContaining({
           path: '/usr/project/samples/python/hello_world.py',
@@ -138,7 +167,51 @@ describe('samples hello_world.py', () => {
         ]),
       }
     ]));
-    expect(result[4]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(snapshots[5]?.stackFrames).toEqual(expect.arrayContaining([
+      {
+        id: expect.any(Number),
+        name: '<module>',
+        line: 7,
+        column: 1,
+        source: expect.objectContaining({
+          path: '/usr/project/samples/python/hello_world.py',
+        }),
+        scopes: expect.arrayContaining([
+          expect.objectContaining({
+            name: 'Locals',
+            variablesReference: expect.any(Number),
+            expensive: expect.any(Boolean),
+            variables: [
+              {
+                name: 'i',
+                value: '0',
+                type: 'int',
+                evaluateName: 'i',
+                variablesReference: expect.any(Number),
+                variables: []
+              },
+              {
+                name: 'x',
+                value: '3',
+                type: 'int',
+                evaluateName: 'x',
+                variablesReference: expect.any(Number),
+                variables: []
+              },
+              {
+                name: 'y',
+                value: '0',
+                type: 'int',
+                evaluateName: 'y',
+                variablesReference: expect.any(Number),
+                variables: []
+              }
+            ]
+          }),
+        ]),
+      }
+    ]));
+    expect(snapshots[6]?.stackFrames).toEqual(expect.arrayContaining([
       {
         id: expect.any(Number),
         name: '<module>',
@@ -182,55 +255,11 @@ describe('samples hello_world.py', () => {
         ]),
       }
     ]));
-    expect(result[5]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(snapshots[7]?.stackFrames).toEqual(expect.arrayContaining([
       {
         id: expect.any(Number),
         name: '<module>',
-        line: 3,
-        column: 1,
-        source: expect.objectContaining({
-          path: '/usr/project/samples/python/hello_world.py',
-        }),
-        scopes: expect.arrayContaining([
-          expect.objectContaining({
-            name: 'Locals',
-            variablesReference: expect.any(Number),
-            expensive: expect.any(Boolean),
-            variables: [
-              {
-                name: 'i',
-                value: '0',
-                type: 'int',
-                evaluateName: 'i',
-                variablesReference: expect.any(Number),
-                variables: []
-              },
-              {
-                name: 'x',
-                value: '3',
-                type: 'int',
-                evaluateName: 'x',
-                variablesReference: expect.any(Number),
-                variables: []
-              },
-              {
-                name: 'y',
-                value: '0',
-                type: 'int',
-                evaluateName: 'y',
-                variablesReference: expect.any(Number),
-                variables: []
-              }
-            ]
-          }),
-        ]),
-      }
-    ]));
-    expect(result[6]?.stackFrames).toEqual(expect.arrayContaining([
-      {
-        id: expect.any(Number),
-        name: '<module>',
-        line: 4,
+        line: 6,
         column: 1,
         source: expect.objectContaining({
           path: '/usr/project/samples/python/hello_world.py',
@@ -270,7 +299,51 @@ describe('samples hello_world.py', () => {
         ]),
       }
     ]));
-    expect(result[7]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(snapshots[8]?.stackFrames).toEqual(expect.arrayContaining([
+      {
+        id: expect.any(Number),
+        name: '<module>',
+        line: 7,
+        column: 1,
+        source: expect.objectContaining({
+          path: '/usr/project/samples/python/hello_world.py',
+        }),
+        scopes: expect.arrayContaining([
+          expect.objectContaining({
+            name: 'Locals',
+            variablesReference: expect.any(Number),
+            expensive: expect.any(Boolean),
+            variables: [
+              {
+                name: 'i',
+                value: '1',
+                type: 'int',
+                evaluateName: 'i',
+                variablesReference: expect.any(Number),
+                variables: []
+              },
+              {
+                name: 'x',
+                value: '3',
+                type: 'int',
+                evaluateName: 'x',
+                variablesReference: expect.any(Number),
+                variables: []
+              },
+              {
+                name: 'y',
+                value: '2',
+                type: 'int',
+                evaluateName: 'y',
+                variablesReference: expect.any(Number),
+                variables: []
+              }
+            ]
+          }),
+        ]),
+      }
+    ]));
+    expect(snapshots[9]?.stackFrames).toEqual(expect.arrayContaining([
       {
         id: expect.any(Number),
         name: '<module>',
@@ -314,183 +387,7 @@ describe('samples hello_world.py', () => {
         ]),
       }
     ]));
-    expect(result[8]?.stackFrames).toEqual(expect.arrayContaining([
-      {
-        id: expect.any(Number),
-        name: '<module>',
-        line: 3,
-        column: 1,
-        source: expect.objectContaining({
-          path: '/usr/project/samples/python/hello_world.py',
-        }),
-        scopes: expect.arrayContaining([
-          expect.objectContaining({
-            name: 'Locals',
-            variablesReference: expect.any(Number),
-            expensive: expect.any(Boolean),
-            variables: [
-              {
-                name: 'i',
-                value: '1',
-                type: 'int',
-                evaluateName: 'i',
-                variablesReference: expect.any(Number),
-                variables: []
-              },
-              {
-                name: 'x',
-                value: '3',
-                type: 'int',
-                evaluateName: 'x',
-                variablesReference: expect.any(Number),
-                variables: []
-              },
-              {
-                name: 'y',
-                value: '2',
-                type: 'int',
-                evaluateName: 'y',
-                variablesReference: expect.any(Number),
-                variables: []
-              }
-            ]
-          }),
-        ]),
-      }
-    ]));
-    expect(result[9]?.stackFrames).toEqual(expect.arrayContaining([
-      {
-        id: expect.any(Number),
-        name: '<module>',
-        line: 4,
-        column: 1,
-        source: expect.objectContaining({
-          path: '/usr/project/samples/python/hello_world.py',
-        }),
-        scopes: expect.arrayContaining([
-          expect.objectContaining({
-            name: 'Locals',
-            variablesReference: expect.any(Number),
-            expensive: expect.any(Boolean),
-            variables: [
-              {
-                name: 'i',
-                value: '2',
-                type: 'int',
-                evaluateName: 'i',
-                variablesReference: expect.any(Number),
-                variables: []
-              },
-              {
-                name: 'x',
-                value: '3',
-                type: 'int',
-                evaluateName: 'x',
-                variablesReference: expect.any(Number),
-                variables: []
-              },
-              {
-                name: 'y',
-                value: '2',
-                type: 'int',
-                evaluateName: 'y',
-                variablesReference: expect.any(Number),
-                variables: []
-              }
-            ]
-          }),
-        ]),
-      }
-    ]));
-    expect(result[10]?.stackFrames).toEqual(expect.arrayContaining([
-      {
-        id: expect.any(Number),
-        name: '<module>',
-        line: 5,
-        column: 1,
-        source: expect.objectContaining({
-          path: '/usr/project/samples/python/hello_world.py',
-        }),
-        scopes: expect.arrayContaining([
-          expect.objectContaining({
-            name: 'Locals',
-            variablesReference: expect.any(Number),
-            expensive: expect.any(Boolean),
-            variables: [
-              {
-                name: 'i',
-                value: '2',
-                type: 'int',
-                evaluateName: 'i',
-                variablesReference: expect.any(Number),
-                variables: []
-              },
-              {
-                name: 'x',
-                value: '3',
-                type: 'int',
-                evaluateName: 'x',
-                variablesReference: expect.any(Number),
-                variables: []
-              },
-              {
-                name: 'y',
-                value: '4',
-                type: 'int',
-                evaluateName: 'y',
-                variablesReference: expect.any(Number),
-                variables: []
-              }
-            ]
-          }),
-        ]),
-      }
-    ]));
-    expect(result[11]?.stackFrames).toEqual(expect.arrayContaining([
-      {
-        id: expect.any(Number),
-        name: '<module>',
-        line: 3,
-        column: 1,
-        source: expect.objectContaining({
-          path: '/usr/project/samples/python/hello_world.py',
-        }),
-        scopes: expect.arrayContaining([
-          expect.objectContaining({
-            name: 'Locals',
-            variablesReference: expect.any(Number),
-            expensive: expect.any(Boolean),
-            variables: [
-              {
-                name: 'i',
-                value: '2',
-                type: 'int',
-                evaluateName: 'i',
-                variablesReference: expect.any(Number),
-                variables: []
-              },
-              {
-                name: 'x',
-                value: '3',
-                type: 'int',
-                evaluateName: 'x',
-                variablesReference: expect.any(Number),
-                variables: []
-              },
-              {
-                name: 'y',
-                value: '4',
-                type: 'int',
-                evaluateName: 'y',
-                variablesReference: expect.any(Number),
-                variables: []
-              }
-            ]
-          }),
-        ]),
-      }
-    ]));
-    expect(result[12]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(snapshots[10]?.stackFrames).toEqual(expect.arrayContaining([
       {
         id: expect.any(Number),
         name: '<module>',
@@ -523,6 +420,50 @@ describe('samples hello_world.py', () => {
               },
               {
                 name: 'y',
+                value: '2',
+                type: 'int',
+                evaluateName: 'y',
+                variablesReference: expect.any(Number),
+                variables: []
+              }
+            ]
+          }),
+        ]),
+      }
+    ]));
+    expect(snapshots[11]?.stackFrames).toEqual(expect.arrayContaining([
+      {
+        id: expect.any(Number),
+        name: '<module>',
+        line: 7,
+        column: 1,
+        source: expect.objectContaining({
+          path: '/usr/project/samples/python/hello_world.py',
+        }),
+        scopes: expect.arrayContaining([
+          expect.objectContaining({
+            name: 'Locals',
+            variablesReference: expect.any(Number),
+            expensive: expect.any(Boolean),
+            variables: [
+              {
+                name: 'i',
+                value: '2',
+                type: 'int',
+                evaluateName: 'i',
+                variablesReference: expect.any(Number),
+                variables: []
+              },
+              {
+                name: 'x',
+                value: '3',
+                type: 'int',
+                evaluateName: 'x',
+                variablesReference: expect.any(Number),
+                variables: []
+              },
+              {
+                name: 'y',
                 value: '4',
                 type: 'int',
                 evaluateName: 'y',
@@ -534,11 +475,99 @@ describe('samples hello_world.py', () => {
         ]),
       }
     ]));
-    expect(result[13]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(snapshots[12]?.stackFrames).toEqual(expect.arrayContaining([
+      {
+        id: expect.any(Number),
+        name: '<module>',
+        line: 5,
+        column: 1,
+        source: expect.objectContaining({
+          path: '/usr/project/samples/python/hello_world.py',
+        }),
+        scopes: expect.arrayContaining([
+          expect.objectContaining({
+            name: 'Locals',
+            variablesReference: expect.any(Number),
+            expensive: expect.any(Boolean),
+            variables: [
+              {
+                name: 'i',
+                value: '2',
+                type: 'int',
+                evaluateName: 'i',
+                variablesReference: expect.any(Number),
+                variables: []
+              },
+              {
+                name: 'x',
+                value: '3',
+                type: 'int',
+                evaluateName: 'x',
+                variablesReference: expect.any(Number),
+                variables: []
+              },
+              {
+                name: 'y',
+                value: '4',
+                type: 'int',
+                evaluateName: 'y',
+                variablesReference: expect.any(Number),
+                variables: []
+              }
+            ]
+          }),
+        ]),
+      }
+    ]));
+    expect(snapshots[13]?.stackFrames).toEqual(expect.arrayContaining([
       {
         id: expect.any(Number),
         name: '<module>',
         line: 8,
+        column: 1,
+        source: expect.objectContaining({
+          path: '/usr/project/samples/python/hello_world.py',
+        }),
+        scopes: expect.arrayContaining([
+          expect.objectContaining({
+            name: 'Locals',
+            variablesReference: expect.any(Number),
+            expensive: expect.any(Boolean),
+            variables: [
+              {
+                name: 'i',
+                value: '2',
+                type: 'int',
+                evaluateName: 'i',
+                variablesReference: expect.any(Number),
+                variables: []
+              },
+              {
+                name: 'x',
+                value: '3',
+                type: 'int',
+                evaluateName: 'x',
+                variablesReference: expect.any(Number),
+                variables: []
+              },
+              {
+                name: 'y',
+                value: '4',
+                type: 'int',
+                evaluateName: 'y',
+                variablesReference: expect.any(Number),
+                variables: []
+              }
+            ]
+          }),
+        ]),
+      }
+    ]));
+    expect(snapshots[14]?.stackFrames).toEqual(expect.arrayContaining([
+      {
+        id: expect.any(Number),
+        name: '<module>',
+        line: 10,
         column: 1,
         source: expect.objectContaining({
           path: '/usr/project/samples/python/hello_world.py',

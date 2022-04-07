@@ -3,7 +3,7 @@ import { SocketDebugClient } from 'node-debugprotocol-client';
 import path from 'path';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { logger } from '../logger';
-import { makeRunner, MakeRunnerConfig } from './runner';
+import { makeRunner, MakeRunnerConfig, Subprocess } from './runner';
 
 export const runStepsWithPHPDebugger = makeRunner({
   connect: params => connect(params),
@@ -48,7 +48,7 @@ const connect: MakeRunnerConfig['connect'] = async ({ logLevel, processes, progr
   return { client };
 };
 
-async function spawnAdapterServer(dap: { host: string, port: number }, processes: cp.ChildProcess[]): Promise<void> {
+async function spawnAdapterServer(dap: { host: string, port: number }, processes: Subprocess[]): Promise<void> {
   logger.debug('Start PHP DAP Server on port', dap.port);
   const launcherFileDir = path.resolve(process.cwd(), './vscode-php-debug/out');
   const launcherFile = 'phpDebug.js';
