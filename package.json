@@ -21,7 +21,8 @@
     "immer": "^9.0.12",
     "node-debugprotocol-client": "^0.5.0",
     "recursive-diff": "^1.0.8",
-    "ts-command-line-args": "^2.2.1"
+    "ts-command-line-args": "^2.2.1",
+    "node-pty": "^0.10.1"
   },
   "devDependencies": {
     "@types/jest": "^27.4.0",

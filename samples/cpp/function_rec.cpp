@@ -8,5 +8,5 @@ int fact(int n) {
 }
 
 int main() {
-   std::cout << fact(3);
+   std::cout << fact(3) << std::endl;
 }

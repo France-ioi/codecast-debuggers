@@ -1,14 +1,15 @@
 import cp from 'child_process';
-import { SocketDebugClient } from 'node-debugprotocol-client';
 import fs from 'fs';
 import path from 'path';
+import * as pty from 'node-pty';
+import { SocketDebugClient } from 'node-debugprotocol-client';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { logger } from '../logger';
-import { MakeRunnerConfig, makeRunner, RunnerOptions, Steps } from './runner';
+import { MakeRunnerConfig, makeRunner, RunnerOptions, Result, Subprocess } from './runner';
 
 type Language = 'c' | 'cpp';
 
-export const runStepsWithLLDB = (language: Language, options: RunnerOptions): Promise<Steps> => {
+export const runStepsWithLLDB = (language: Language, options: RunnerOptions): Promise<Result> => {
   const config = configurations[language];
   let executablePath: string | null = null;
 
@@ -36,9 +37,8 @@ const connect = (
   language: Language,
   config: Configuration,
   onExecutablePath: (thePath: string) => void,
-): MakeRunnerConfig['connect'] => async ({ beforeInitialize, logLevel, processes, programPath, inputPath }) => {
+): MakeRunnerConfig['connect'] => async ({ beforeInitialize, logLevel, onOutput, processes, programPath, inputPath }) => {
   const connectLLDBTime = process.hrtime();
-
   const dap = {
     host: 'localhost',
     port: 4711,
@@ -104,18 +104,31 @@ const connect = (
       }
       logger.debug('[Event] RunInTerminalRequest', { argv, args, cwd, kind, title });
       logger.log(argv, args);
-      const subprocess = cp.spawn(argv, args, {
-        stdio: [ 'ignore', 'inherit', 'inherit' ],
+      const subprocess = pty.spawn('bash', [], {
+        name: title ?? 'reverse_command',
+        cols: 80,
+        rows: 1,
+        cwd,
         // eslint-disable-next-line @typescript-eslint/naming-convention
         env: { ...env, RUST_BACKTRACE: 'full' },
-        shell: true,
       });
+      subprocess.onData(message => {
+        onOutput({
+          category: 'stdout',
+          // since pty adds a \n when emitting command output, remove one from the message
+          output: message.replace(/\n$/, ''),
+        });
+      });
+      subprocess.onExit(e => {
+        logger.debug('[on exit]', e);
+        if (e.exitCode > 0) {
+          reject(new Error(`Terminal request exited with code ${e.exitCode}`));
+        }
+      });
+      subprocess.write(`${argv} ${args.join(' ')}\r`);
+
       processes.push(subprocess);
-      subprocess.on('error', error => {
-        logger.error(error);
-        reject(error);
-      });
-      // resolve()
+
       logger.debug(7, '[LLDB StepsRunner] ran requested command in terminal');
       setTimeout(resolve, 1);
 
@@ -140,7 +153,7 @@ const connect = (
   return { client };
 };
 
-async function spawnAdapterServer(dap: { host: string, port: number }, processes: cp.ChildProcess[]): Promise<void> {
+async function spawnAdapterServer(dap: { host: string, port: number }, processes: Subprocess[]): Promise<void> {
   logger.debug('Start LLDB DAP Server on port', dap.port);
 
   const root = path.join(process.cwd(), 'vscode-lldb');

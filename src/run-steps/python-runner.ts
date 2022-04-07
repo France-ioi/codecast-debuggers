@@ -3,7 +3,7 @@ import path from 'path';
 import { SocketDebugClient } from 'node-debugprotocol-client';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { logger } from '../logger';
-import { makeRunner, MakeRunnerConfig } from './runner';
+import { makeRunner, MakeRunnerConfig, Subprocess } from './runner';
 import { Stream } from 'stream';
 
 export const runStepsWithPythonDebugger = makeRunner({
@@ -23,7 +23,7 @@ export const runStepsWithPythonDebugger = makeRunner({
   },
 });
 
-const connect: MakeRunnerConfig['connect'] = async ({ processes, programPath, logLevel, beforeInitialize, inputStream }) => {
+const connect: MakeRunnerConfig['connect'] = async ({ processes, programPath, logLevel, onOutput, beforeInitialize, inputStream }) => {
   const language = 'Python';
   const dap = {
     host: 'localhost',
@@ -39,6 +39,14 @@ const connect: MakeRunnerConfig['connect'] = async ({ processes, programPath, lo
     port: dap.port,
     loggerName: `${language} debug adapter client`,
     logLevel,
+  });
+
+  client.onOutput(event => {
+    // Sometimes PyDebug emits stdouts and \n separately,
+    // because of that we have to filter out only-whitespace outputs
+    if ((event.category === 'stdout' || event.category === 'stderr') && event.output.trim()) {
+      onOutput(event);
+    }
   });
 
   const initialized = new Promise<void>(resolve => {
@@ -114,7 +122,7 @@ const connect: MakeRunnerConfig['connect'] = async ({ processes, programPath, lo
 
 async function spawnDebugAdapterServer(
   dap: { host: string, port: number },
-  processes: cp.ChildProcess[],
+  processes: Subprocess[],
   inputStream: Stream|null,
 ): Promise<void> {
   const debugPyFolderPath = findDebugPyFolder();

@@ -1,17 +1,24 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { callScript } from '../call-script';
-import { Steps, StepSnapshot } from '../run-steps/runner';
+import { Result, StepSnapshot } from '../run-steps/runner';
 import { reconstructSnapshotsFromSteps } from '../reconstruct-snapshots';
 
 describe('samples memory.cpp', () => {
-  let result!: StepSnapshot[];
+  let snapshots!: StepSnapshot[];
   beforeAll(async () => {
     const stringified = await callScript({ sourcePath: './samples/cpp/memory.cpp', inputPath: '', breakpoints: '*', help: false }, 'off');
-    result = reconstructSnapshotsFromSteps(JSON.parse(stringified) as Steps);
+
+    const result = JSON.parse(stringified) as Result;
+    snapshots = reconstructSnapshotsFromSteps(result.steps);
   });
 
-  it('should have a valid result', () => {
-    expect(result[0]?.stackFrames).toEqual(expect.arrayContaining([
+  it('should have valid outputs', () => {
+    expect(snapshots.filter(step => step.stdout)).toHaveLength(1);
+    expect(snapshots[7]?.stdout).toEqual([ 'Hello World 42\r' ]);
+  });
+
+  it('should have valid steps', () => {
+    expect(snapshots[0]?.stackFrames).toEqual(expect.arrayContaining([
       {
         column: 1,
         id: expect.any(Number),
@@ -31,7 +38,7 @@ describe('samples memory.cpp', () => {
         ]),
       },
     ]));
-    expect(result[1]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(snapshots[1]?.stackFrames).toEqual(expect.arrayContaining([
       {
         column: 1,
         id: expect.any(Number),
@@ -51,7 +58,7 @@ describe('samples memory.cpp', () => {
         ]),
       },
     ]));
-    expect(result[2]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(snapshots[2]?.stackFrames).toEqual(expect.arrayContaining([
       {
         column: 1,
         id: expect.any(Number),
@@ -89,7 +96,7 @@ describe('samples memory.cpp', () => {
         ]),
       },
     ]));
-    expect(result[3]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(snapshots[3]?.stackFrames).toEqual(expect.arrayContaining([
       {
         column: 1,
         id: expect.any(Number),
@@ -109,7 +116,7 @@ describe('samples memory.cpp', () => {
         ]),
       },
     ]));
-    expect(result[4]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(snapshots[4]?.stackFrames).toEqual(expect.arrayContaining([
       {
         column: 11,
         id: expect.any(Number),
@@ -153,7 +160,7 @@ describe('samples memory.cpp', () => {
         ]),
       },
     ]));
-    expect(result[5]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(snapshots[5]?.stackFrames).toEqual(expect.arrayContaining([
       {
         column: 15,
         id: expect.any(Number),
@@ -197,7 +204,7 @@ describe('samples memory.cpp', () => {
         ]),
       },
     ]));
-    expect(result[6]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(snapshots[6]?.stackFrames).toEqual(expect.arrayContaining([
       {
         column: 10,
         id: expect.any(Number),
@@ -242,7 +249,7 @@ describe('samples memory.cpp', () => {
         ]),
       },
     ]));
-    expect(result[7]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(snapshots[7]?.stackFrames).toEqual(expect.arrayContaining([
       {
         column: 17,
         id: expect.any(Number),
@@ -287,7 +294,7 @@ describe('samples memory.cpp', () => {
         ]),
       },
     ]));
-    expect(result[8]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(snapshots[8]?.stackFrames).toEqual(expect.arrayContaining([
       {
         column: 11,
         id: expect.any(Number),
@@ -332,7 +339,7 @@ describe('samples memory.cpp', () => {
         ]),
       },
     ]));
-    expect(result[9]?.stackFrames).toEqual(expect.arrayContaining([
+    expect(snapshots[9]?.stackFrames).toEqual(expect.arrayContaining([
       {
         column: 1,
         id: expect.any(Number),

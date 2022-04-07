@@ -1,7 +1,7 @@
 import fs from 'fs';
 import { callScript } from './call-script';
 import { logger } from './logger';
-import { Steps } from './run-steps/runner';
+import { Result } from './run-steps/runner';
 import { reconstructSnapshotsFromSteps } from './reconstruct-snapshots';
 import { commandOptions } from './command_arguments';
 
@@ -19,9 +19,12 @@ callScript(commandOptions, 'debug').then(rawJSON => {
   try {
     fs.writeFileSync(__dirname + '/../results/steps.json', rawJSON, 'utf-8');
 
-    const reconstructedJson = reconstructSnapshotsFromSteps(JSON.parse(rawJSON) as Steps);
+    const result = JSON.parse(rawJSON) as Result;
+    const reconstructedJson = reconstructSnapshotsFromSteps(result.steps);
     fs.writeFileSync(__dirname + '/../results/snapshots.json', JSON.stringify(reconstructedJson), 'utf-8');
-  } catch {
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error(error);
     logger.info('could not parse JSON', rawJSON);
   }
 }).catch(error => {

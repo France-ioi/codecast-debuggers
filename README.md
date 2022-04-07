@@ -26,6 +26,12 @@ npm run build:lldb # C/C++
 npm run build:python # Python
 ```
 
+## Development
+
+* Run docker
+* Compile typescript on changes : `tsc --watch`
+* You can run the linting manually : `npm run lint`
+
 ## Usage
 
 ### CLI
@@ -38,9 +44,11 @@ npm run debug ./samples/c/hello_world.c # For C
 npm run debug ./samples/cpp/hello_world.cpp # For C++
 npm run debug ./samples/php/hello_world.php # For PHP
 npm run debug ./samples/python/hello_world.py # For Python
+
+npm run debug ./samples/python/hello_world.py -- --breakpoints 1,3 # Specifying breakpoints
 ```
 
-### Programmatical
+### Programmatically
 
 ```ts
 import { callScript } from 'codecast-debuggers' // if package is published :shrug:

@@ -1,4 +1,3 @@
-import cp from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { getDiff, applyDiff } from 'recursive-diff';
@@ -7,6 +6,7 @@ import { LogLevel, SocketDebugClient, Unsubscribable } from 'node-debugprotocol-
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { logger } from '../logger';
 import { Stream } from 'stream';
+import process from 'process';
 
 enablePatches();
 
@@ -17,20 +17,44 @@ let snapshotTotalDuration = 0;
 let diffTotalDuration = 0;
 let produceTotalDuration = 0;
 
+export interface Subprocess {
+  kill: () => void,
+}
+
 export interface MakeRunnerConfig {
 
   /**
    * Allow per debugger to define how to connect to the Debug Adapter Protocol server.
    * For some it might be a combination of spawning a server and launching the socket debug client
    * For others it might be only attaching the socket debug client
+   * Let each debugger also take care of other implementation details like emitting outputs, launching processes or
+   * executing reverse queries, etc.
    */
   connect: (input: {
-    processes: cp.ChildProcess[],
+
+    /**
+     * Runner implementations can push sub processes in that array, they will be killed when the runner is destroyed
+     */
+    processes: Subprocess[],
+
+    /**
+     * Runner implementations can push subscribers, they will will be unsubscribed when the runner is destroyed
+     */
     subscribers: Unsubscribable[],
     programPath: string,
     inputStream: Stream|null,
     inputPath: string,
     logLevel: LogLevel,
+
+    /**
+     * Let each runner implementation determine how to retrieve outputs, then pass any output to this callback,
+     * outputs will be added to the result by the runner
+     */
+    onOutput: (output: Output) => void,
+
+    /**
+     * Hook to be executed in runner implementations _before_ calling client.initialize()
+     */
     beforeInitialize: (client: SocketDebugClient) => void,
   }) => Promise<{
     client: SocketDebugClient,
@@ -77,9 +101,10 @@ interface RunStepContext {
   client: SocketDebugClient,
   canDigVariable: (variable: DebugProtocol.Variable) => boolean,
   canDigScope: (scope: DebugProtocol.Scope) => boolean,
+  breakpoints: string,
 }
 
-export type Runner = (options: RunnerOptions) => Promise<Steps>;
+export type Runner = (options: RunnerOptions) => Promise<Result>;
 
 /**
  * Used by a factory to create a runner per debugger based on the language
@@ -93,9 +118,20 @@ export const makeRunner = ({
   canDigVariable = (): boolean => true,
 }: MakeRunnerConfig): Runner => {
   const destroyed = false;
-  const acc: StepsAcc = {
-    previous: {},
-    steps: [],
+  const acc: StepsAcc = [];
+  const onOutput: Parameters<MakeRunnerConfig['connect']>[0]['onOutput'] = output => {
+    const last = acc.at(-1);
+    if (!last) {
+      return;
+    } // too early to have "real" outputs
+
+    logger.debug('Add stdout:', output);
+    if (output.category === 'stdout') {
+      last.stdout = [ ...(last?.stdout ?? []), output.output ];
+    }
+    if (output.category === 'stderr') {
+      last.stderr = [ ...(last?.stderr ?? []), output.output ];
+    }
   };
   let resolveSteps: () => void = () => {};
   const steps = new Promise<StepsAcc>(resolve => {
@@ -103,7 +139,7 @@ export const makeRunner = ({
   });
 
   return async (options: RunnerOptions) => {
-    const processes: cp.ChildProcess[] = [];
+    const processes: Subprocess[] = [];
     const subscribers: Unsubscribable[] = [];
     const programPath = path.resolve(process.cwd(), options.main.relativePath);
 
@@ -138,6 +174,7 @@ export const makeRunner = ({
       inputStream: options.inputStream,
       inputPath: options.inputPath,
       logLevel: LogLevel[options.logLevel ?? 'Off'],
+      onOutput,
       beforeInitialize: client => registerEvents(client, resolveSteps),
     });
 
@@ -148,10 +185,10 @@ export const makeRunner = ({
         return;
       }
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      setSnapshotAndStepIn({
+      setSnapshotAndAdvance({
         acc,
         filePaths: [ options.main, ...options.files ].map(file => path.resolve(process.cwd(), file.relativePath)),
-        context: { client, canDigScope, canDigVariable },
+        context: { client, canDigScope, canDigVariable, breakpoints: options.breakpoints },
         threadId: stoppedEvent.threadId,
       });
     });
@@ -180,31 +217,60 @@ export const makeRunner = ({
 
     logger.debug(6, '[runner] return result');
 
+    const producedSteps = snapshotsToSteps(result);
+
     logger.log('Snapshot total duration (DAP interaction) : ', snapshotTotalDuration);
     logger.log('Diff total duration : ', diffTotalDuration);
     logger.log('Produce total duration : ', produceTotalDuration);
 
-    return result.steps;
+    return {
+      steps: producedSteps,
+    };
   };
 };
 
 export type Step = Patch[];
 export type Steps = Step[];
 
-export interface StepsAcc {
-
-  /**
-   * previous snapshot, `{}` only at first step
-   */
-  previous: Partial<StepSnapshot>,
-
-  /**
-   * A step is a list of patches computed from previous step and *not* from start
-   */
-  steps: Steps, // Patches _per step based on previous step_
+export interface Result {
+  steps: Steps,
 }
+
+function snapshotsToSteps(snapshots: StepSnapshot[]): Steps {
+  return snapshots.reduce((acc, current, index) => {
+    const previous = snapshots[index-1] ?? {};
+
+    const diffStartTime = process.hrtime();
+    const diff = getDiff(previous, current);
+    const diffDuration = process.hrtime(diffStartTime);
+    diffTotalDuration += diffDuration[0] + (diffDuration[1] / 1000000000);
+
+    /**
+     * Computing the patches is not very straighforward:
+     * 1. Compute the diff between previous & current snapshot using recursive-diff because immer doesn't do that
+     * 2. Apply that diff to the ImmerJS draft to extract patches under ImmerJS formats
+     */
+    const produceStartTime = process.hrtime();
+    produce(
+      previous,
+      draft => void applyDiff(draft, diff),
+      patches => void acc.push(patches),
+    );
+    const produceDuration = process.hrtime(produceStartTime);
+    produceTotalDuration += produceDuration[0] + (produceDuration[1] / 1000000000);
+
+    return acc;
+  }, [] as Steps);
+}
+
+type Output = DebugProtocol.OutputEvent['body'];
+
+export type StepsAcc = StepSnapshot[];
+
 export interface StepSnapshot {
   stackFrames: StackFrame[],
+  stdout?: string[],
+  stderr?: string[],
 }
 export interface StackFrame extends DebugProtocol.StackFrame {
   scopes: Scope[],
@@ -220,7 +286,7 @@ export interface Variable extends DebugProtocol.Variable {
 interface DestroyParams {
   client: SocketDebugClient,
   destroyed: boolean,
-  processes: cp.ChildProcess[],
+  processes: Subprocess[],
   subscribers: Unsubscribable[],
   programPath: string,
   afterDestroy: () => Promise<void>,
@@ -235,9 +301,8 @@ async function destroy(origin: string, { destroyed, subscribers, processes, clie
   logger.debug(`[StepsRunner] Destroy ⋅ ${origin}`);
   subscribers.forEach(subscriber => subscriber.unsubscribe());
   processes.forEach(subprocess => {
-    if (!subprocess.killed) {
-      subprocess.kill();
-    }
+
+    subprocess.kill();
   });
   client.disconnectAdapter();
   await client.disconnect({}).catch(() => { /* throws if already disconnected */ });
@@ -333,8 +398,8 @@ interface SetSnapshotAndStepInParams {
   threadId: GetSnapshotParams['threadId'],
 }
 
-async function setSnapshotAndStepIn({ context, acc, filePaths, threadId }: SetSnapshotAndStepInParams): Promise<void> {
-  const i = acc.steps.length + 1;
+async function setSnapshotAndAdvance({ context, acc, filePaths, threadId }: SetSnapshotAndStepInParams): Promise<void> {
+  const i = acc.length + 1;
 
   try {
     logger.debug('Execute steps', i);
@@ -347,31 +412,18 @@ async function setSnapshotAndStepIn({ context, acc, filePaths, threadId }: SetSn
     //logger.dir({ snapshot }, { colors: true, depth: 10 });
 
     if (snapshot.stackFrames.length > 0) {
-      const diffStartTime = process.hrtime();
-      const diff = getDiff(acc.previous, snapshot);
-      const diffHrDuration = process.hrtime(diffStartTime);
-      diffTotalDuration += diffHrDuration[0] + (diffHrDuration[1] / 1000000000);
-
-      /**
-       * Computing the patches is not very straighforward:
-       * 1. Compute the diff between previous & current snapshot using recursive-diff because immer doesn't do that
-       * 2. Apply that diff to the ImmerJS draft to extract patches under ImmerJS formats
-       */
-      const produceStartTime = process.hrtime();
-      produce(
-        acc.previous,
-        draft => void applyDiff(draft, diff),
-        patches => void acc.steps.push(patches),
-      );
-      const produceHrDuration = process.hrtime(produceStartTime);
-      produceTotalDuration += produceHrDuration[0] + (produceHrDuration[1] / 1000000000);
-
-      acc.previous = snapshot; // set base for next step
+      acc.push(snapshot);
     }
 
-    snapshot.stackFrames.some(isStackFrameOfSourceFile(filePaths))
-      ? await context.client.stepIn({ threadId, granularity: 'instruction' })
-      : await context.client.stepOut({ threadId, granularity: 'instruction' });
+    if (context.breakpoints == '*') {
+      if (snapshot.stackFrames.some(isStackFrameOfSourceFile(filePaths))) {
+        await context.client.stepIn({ threadId, granularity: 'instruction' });
+      } else {
+        await context.client.stepOut({ threadId, granularity: 'instruction' });
+      }
+    } else {
+      await context.client.continue({ threadId });
+    }
   } catch (error) {
     logger.debug('Failed at step', i, error);
   }
