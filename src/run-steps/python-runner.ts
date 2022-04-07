@@ -99,7 +99,7 @@ const connect: MakeRunnerConfig['connect'] = async ({ processes, programPath, lo
   logger.debug(6, '[Python StepsRunner] launch client');
   const launched = client.launch({
     program: programPath,
-    justMyCode: true,
+    justMyCode: false,
   } as DebugProtocol.LaunchRequestArguments);
 
   await Promise.race([

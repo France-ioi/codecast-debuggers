@@ -20,5 +20,5 @@ ENV ROOT=/usr/project
 WORKDIR ${ROOT}
 
 # EXPOSE ${SERVER_PORT}
-ENTRYPOINT ["node", "--prof", "./out/script.js"]
+ENTRYPOINT ["node", "./out/script.js"]
 CMD [""]

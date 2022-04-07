@@ -1,35 +1,18 @@
-// @ts-check
 import path from 'path';
 import fs from 'fs';
 import { logger } from './logger';
 import { languageByExtension, runSteps, toLanguageExtension } from './run-steps/factory';
 import { Stream } from 'stream';
+import { commandOptions } from './command_arguments';
 
-logger.debug('process args', process.argv.slice(2));
+logger.log(process.argv);
+logger.debug('process args', commandOptions);
 
-/**
- * Arguments can be :
- * - SOURCE_FILE
- * or
- * - SOURCE_FILE INPUT_FILE.txt
- */
-const [ lastArgument ] = process.argv.slice(-1);
-let mainFilePath: string|undefined, inputPath: string|undefined;
-if (lastArgument && path.extname(lastArgument) == '.txt') {
-  [ mainFilePath, inputPath ] = process.argv.slice(-2);
-} else {
-  [ mainFilePath ] = process.argv.slice(-1);
-  inputPath = '';
+if (!commandOptions.sourcePath) {
+  throw new Error('The source path must be defined');
 }
 
-if (!mainFilePath) {
-  throw new Error('mainFilePath must be defined');
-}
-if (!inputPath) {
-  inputPath = '';
-}
-
-const fileExtension = path.extname(mainFilePath);
+const fileExtension = path.extname(commandOptions.sourcePath);
 const language = languageByExtension[toLanguageExtension(fileExtension)];
 if (!language) {
   logger.error(new Error(`Unreckognized file extension: "${fileExtension}". Accepted: "${Object.keys(languageByExtension).join('", "')}"`));
@@ -39,25 +22,24 @@ if (!language) {
 async function main(): Promise<void> {
   const mainStartTime = process.hrtime();
 
-  logger.debug({ language, mainFilePath, inputPath });
+  logger.debug({ language, sourcePath: commandOptions.sourcePath, inputPath: commandOptions.inputPath });
 
-  if (!mainFilePath) {
-    throw new Error('mainFilePath must be defined');
+  if (!commandOptions.sourcePath) {
+    throw new Error('The source path must be defined');
   }
-  if (inputPath) {
-    inputPath = path.resolve(inputPath);
-  } else {
-    inputPath = '';
+  if (commandOptions.inputPath) {
+    commandOptions.inputPath = path.resolve(commandOptions.inputPath);
   }
 
-  const inputStream = await openInputStream(inputPath);
+  const inputStream = await openInputStream(commandOptions.inputPath);
 
   const result = await runSteps(language, {
     logLevel: logger.level === 'debug' ? 'On' : 'Off',
-    main: { relativePath: mainFilePath },
+    main: { relativePath: commandOptions.sourcePath },
     inputStream: inputStream,
-    inputPath: inputPath,
+    inputPath: commandOptions.inputPath,
     files: [],
+    breakpoints: commandOptions.breakpoints,
   });
   logger.result('RESULT_BEGIN', JSON.stringify(result), 'RESULT_END');
 
@@ -81,7 +63,7 @@ async function openInputStream(inputPath: string): Promise<Stream|null> {
     const inputStream = fs.createReadStream(inputPath);
 
     inputStream.on('open', () => {
-      logger.debug('Input stream is open');
+      logger.debug('Input stream is open : ', inputPath);
       resolve(inputStream);
     });
     inputStream.on('error', e => {

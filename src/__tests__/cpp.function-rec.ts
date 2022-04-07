@@ -6,7 +6,12 @@ import { reconstructSnapshotsFromSteps } from '../reconstruct-snapshots';
 describe('samples function_rec.cpp', () => {
   let result!: StepSnapshot[];
   beforeAll(async () => {
-    const stringified = await callScript('./samples/cpp/function_rec.cpp', '', 'off');
+    const stringified = await callScript({
+      sourcePath: './samples/cpp/function_rec.c',
+      inputPath: '',
+      breakpoints: '*',
+      help: false,
+    }, 'off');
     result = reconstructSnapshotsFromSteps(JSON.parse(stringified) as Steps);
   });
 

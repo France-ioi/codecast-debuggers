@@ -67,6 +67,7 @@ export interface RunnerOptions {
   inputPath: string,
   files: Array<File>,
   logLevel?: 'On' | 'Off',
+  breakpoints: string,
 }
 
 /**
@@ -157,7 +158,7 @@ export const makeRunner = ({
     subscribers.push(subscriber);
 
     logger.debug(2, '[runner] setBreakpoints()');
-    await setBreakpoints({ client, programPath });
+    await setBreakpoints({ client, programPath, breakpoints: options.breakpoints });
 
     logger.debug(3, '[runner] Configuration Done');
     // send 'configuration done' (in some debuggers this will trigger 'continue' if attach was awaited)
@@ -247,6 +248,7 @@ async function destroy(origin: string, { destroyed, subscribers, processes, clie
 interface SetBreakpointsConfig {
   client: SocketDebugClient,
   programPath: string,
+  breakpoints: string,
 }
 
 /**
@@ -254,13 +256,20 @@ interface SetBreakpointsConfig {
  * @param {SetBreakpointsConfig} config
  * @returns {Promise<void>} returns resolving promise when done.
  */
-async function setBreakpoints({ client, programPath }: SetBreakpointsConfig): Promise<void> {
+async function setBreakpoints({ client, programPath, breakpoints }: SetBreakpointsConfig): Promise<void> {
   const programCode = await fs.promises.readFile(programPath, 'utf-8');
   const lines = programCode.split('\n').length;
 
-  logger.debug('[StepsRunner] set breakpoints');
+  let breakpointsDef;
+  if (breakpoints == '*') {
+    breakpointsDef = Array.from({ length: lines }, (_, i) => ({ line: i + 1 }));
+  } else {
+    breakpointsDef = breakpoints.split(',').map(line => ({ line: parseInt(line) }));
+  }
+
+  logger.debug('[StepsRunner] set breakpoints', breakpointsDef);
   let response = await client.setBreakpoints({
-    breakpoints: Array.from({ length: lines }, (_, i) => ({ line: i + 1 })),
+    breakpoints: breakpointsDef,
     source: {
       path: programPath,
     },
@@ -271,7 +280,7 @@ async function setBreakpoints({ client, programPath }: SetBreakpointsConfig): Pr
     .filter(breakpoint => breakpoint.verified && typeof breakpoint.line === 'number')
     .map(({ line }) => ({ line: line as number }));
 
-  if (verifiedBreakpoints.length === lines) {
+  if (verifiedBreakpoints.length === breakpointsDef.length) {
     return;
   }
 
