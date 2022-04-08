@@ -193,24 +193,35 @@ interface Configuration {
   launchArgs?: DebugProtocol.LaunchRequestArguments,
 }
 
+/**
+ * Executes the compile command.
+ *
+ * @param command The command.
+ *
+ * @throws An exception in case the compilation fails.
+ */
+function execCompileCommand(command: string): void {
+  let compileOutput;
+
+  try {
+    compileOutput = cp.execSync(command);
+  } catch (e) {
+    const error = (e as SpawnSyncReturns<Buffer>).stderr.toString();
+
+    throw {
+      error,
+    };
+  }
+  logger.debug(command, ':', compileOutput);
+}
+
 // /* eslint-disable @typescript-eslint/naming-convention */
 const configurations: Record<Language, Configuration> = {
   c: {
     compile: mainFilePath => {
       const executablePath = removeExt(mainFilePath);
       const compileCommand = `gcc -g ${mainFilePath} -o ${executablePath} -ldl`;
-      let compileOutput;
-
-      try {
-        compileOutput = cp.execSync(compileCommand);
-      } catch (e) {
-        const error = (e as SpawnSyncReturns<Buffer>).stderr.toString();
-
-        throw {
-          error,
-        };
-      }
-      logger.debug(compileCommand, ':', compileOutput);
+      execCompileCommand(compileCommand);
 
       return { executablePath };
     },
@@ -221,7 +232,8 @@ const configurations: Record<Language, Configuration> = {
   cpp: {
     compile: mainFilePath => {
       const executablePath = removeExt(mainFilePath);
-      cp.execSync(`g++ -g ${mainFilePath} -o ${executablePath} -ldl`, { stdio: 'inherit' });
+      const compileCommand = `g++ -g ${mainFilePath} -o ${executablePath} -ldl`;
+      execCompileCommand(compileCommand);
 
       return { executablePath };
     },
