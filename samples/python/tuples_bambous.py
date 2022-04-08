@@ -14,7 +14,7 @@ def deplacer_bambous(hauteur, debut, fin):
   deplacer_bambous(hauteur, debut, milieu)
   deplacer_bambous(hauteur, milieu+1, fin)
 
-#bambous = [14, 15, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-bambous = [14, 15, 2, 1]
+bambous = [14, 15, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
+#bambous = [14, 15, 2, 1]
 deplacer_bambous(bambous, 0, len(bambous))
 print(bambous)

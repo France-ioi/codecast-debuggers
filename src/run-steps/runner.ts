@@ -7,6 +7,8 @@ import { DebugProtocol } from 'vscode-debugprotocol';
 import { logger } from '../logger';
 import { Stream } from 'stream';
 import process from 'process';
+import { setTimeout } from 'timers/promises';
+import { config } from '../config';
 
 enablePatches();
 
@@ -203,7 +205,16 @@ export const makeRunner = ({
 
     logger.debug(4, '[runner] await steps');
     const debuggingStartTime = process.hrtime();
-    const result = await steps;
+
+    const timeout = setTimeout(config.limitTime * 1000, 'timeout');
+    const result = await Promise.race([ steps, timeout ]);
+    if (result == 'timeout') {
+      // @ts-ignore
+      acc[acc.length - 1].terminated = true;
+      // @ts-ignore
+      acc[acc.length - 1].terminatedReason = 'Debugger time exceeded.';
+    }
+
     const debuggingDuration = process.hrtime(debuggingStartTime);
     logger.log('Debugging duration : ', (debuggingDuration[0] + (debuggingDuration[1] / 1000000000)));
 
@@ -217,7 +228,7 @@ export const makeRunner = ({
 
     logger.debug(6, '[runner] return result');
 
-    const producedSteps = snapshotsToSteps(result);
+    const producedSteps = snapshotsToSteps(acc);
 
     logger.log('Snapshot total duration (DAP interaction) : ', snapshotTotalDuration);
     logger.log('Diff total duration : ', diffTotalDuration);
@@ -275,6 +286,8 @@ export interface StepSnapshot {
   stackFrames: StackFrame[],
   stdout?: string[],
   stderr?: string[],
+  terminated?: boolean,
+  terminatedReason?: string,
 }
 export interface StackFrame extends DebugProtocol.StackFrame {
   scopes: Scope[],

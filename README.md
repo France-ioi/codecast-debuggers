@@ -26,6 +26,10 @@ npm run build:lldb # C/C++
 npm run build:python # Python
 ```
 
+## Configuration
+
+You can modify the values in `src/config.ts`.
+
 ## Development
 
 * Run docker
