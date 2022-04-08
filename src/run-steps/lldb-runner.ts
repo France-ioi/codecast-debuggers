@@ -1,4 +1,4 @@
-import cp from 'child_process';
+import cp, { SpawnSyncReturns } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import * as pty from 'node-pty';
@@ -197,9 +197,20 @@ interface Configuration {
 const configurations: Record<Language, Configuration> = {
   c: {
     compile: mainFilePath => {
-      // execSync(disableASLRCommand(), { stdio: 'inherit' })
       const executablePath = removeExt(mainFilePath);
-      cp.execSync(`gcc -g ${mainFilePath} -o ${executablePath} -ldl`, { stdio: 'inherit' });
+      const compileCommand = `gcc -g ${mainFilePath} -o ${executablePath} -ldl`;
+      let compileOutput;
+
+      try {
+        compileOutput = cp.execSync(compileCommand);
+      } catch (e) {
+        const error = (e as SpawnSyncReturns<Buffer>).stderr.toString();
+
+        throw {
+          error,
+        };
+      }
+      logger.debug(compileCommand, ':', compileOutput);
 
       return { executablePath };
     },

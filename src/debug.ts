@@ -20,8 +20,12 @@ callScript(commandOptions, 'debug').then(rawJSON => {
     fs.writeFileSync(__dirname + '/../results/steps.json', rawJSON, 'utf-8');
 
     const result = JSON.parse(rawJSON) as Result;
-    const reconstructedJson = reconstructSnapshotsFromSteps(result.steps);
-    fs.writeFileSync(__dirname + '/../results/snapshots.json', JSON.stringify(reconstructedJson), 'utf-8');
+    if (result.error) {
+      fs.writeFileSync(__dirname + '/../results/snapshots.json', JSON.stringify(result), 'utf-8');
+    } else {
+      const reconstructedJson = reconstructSnapshotsFromSteps(result.steps);
+      fs.writeFileSync(__dirname + '/../results/snapshots.json', JSON.stringify(reconstructedJson), 'utf-8');
+    }
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error(error);

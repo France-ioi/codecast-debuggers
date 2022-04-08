@@ -33,15 +33,20 @@ async function main(): Promise<void> {
 
   const inputStream = await openInputStream(commandOptions.inputPath);
 
-  const result = await runSteps(language, {
-    logLevel: logger.level === 'debug' ? 'On' : 'Off',
-    main: { relativePath: commandOptions.sourcePath },
-    inputStream: inputStream,
-    inputPath: commandOptions.inputPath,
-    files: [],
-    breakpoints: commandOptions.breakpoints,
-  });
-  logger.result('RESULT_BEGIN', JSON.stringify(result), 'RESULT_END');
+  try {
+    const result = await runSteps(language, {
+      logLevel: logger.level === 'debug' ? 'On' : 'Off',
+      main: { relativePath: commandOptions.sourcePath },
+      inputStream: inputStream,
+      inputPath: commandOptions.inputPath,
+      files: [],
+      breakpoints: commandOptions.breakpoints,
+    });
+
+    logger.result('RESULT_BEGIN', JSON.stringify(result), 'RESULT_END');
+  } catch (e) {
+    logger.result('RESULT_BEGIN', JSON.stringify(e), 'RESULT_END');
+  }
 
   const mainDuration = process.hrtime(mainStartTime);
   logger.log('Main script duration : ', (mainDuration[0] + (mainDuration[1] / 1000000000)));

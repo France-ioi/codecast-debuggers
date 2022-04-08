@@ -46,12 +46,15 @@ npm run debug ./samples/php/hello_world.php # For PHP
 npm run debug ./samples/python/hello_world.py # For Python
 
 # With breakpoints :
-npm run debug ./samples/python/hello_world.py -- --breakpoints 1,3
+npm run debug ./samples/python/hello_world.py -- -b 1,3
 
 # With inputs :
 npm run debug samples/python/input.py -- -i samples/python/inputs/input.txt
 npm run debug samples/c/input.c -- -i samples/c/inputs/input.txt
 npm run debug samples/cpp/input.cpp -- -i samples/cpp/inputs/input.txt
+
+# Other examples
+npm run debug samples/python/sliding_n3.py -- -i samples/python/inputs/sliding.txt -b 23
 ```
 
 ### Programmatically

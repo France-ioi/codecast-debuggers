@@ -233,7 +233,11 @@ export type Step = Patch[];
 export type Steps = Step[];
 
 export interface Result {
+  error?: string,
   steps: Steps,
+}
+export interface ResultError {
+
 }
 
 function snapshotsToSteps(snapshots: StepSnapshot[]): Steps {
