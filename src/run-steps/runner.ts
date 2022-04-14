@@ -182,6 +182,16 @@ export const makeRunner = ({
 
     const subscriber = client.onStopped(stoppedEvent => {
       logger.debug('[Event] Stopped', stoppedEvent);
+      if (stoppedEvent.reason == 'signal') {
+        // @ts-ignore
+        acc[acc.length - 1].terminated = true;
+        // @ts-ignore
+        acc[acc.length - 1].terminatedReason = stoppedEvent.text;
+        resolveSteps();
+
+        return;
+      }
+
       const reasons = [ 'breakpoint', 'step' ];
       if (!reasons.includes(stoppedEvent.reason) || typeof stoppedEvent.threadId !== 'number') {
         return;
@@ -209,6 +219,8 @@ export const makeRunner = ({
     const timeout = setTimeout(config.limitTime * 1000, 'timeout');
     const result = await Promise.race([ steps, timeout ]);
     if (result == 'timeout') {
+      logger.log('Process timeout reached !');
+
       // @ts-ignore
       acc[acc.length - 1].terminated = true;
       // @ts-ignore
@@ -319,7 +331,6 @@ async function destroy(origin: string, { destroyed, subscribers, processes, clie
   logger.debug(`[StepsRunner] Destroy ⋅ ${origin}`);
   subscribers.forEach(subscriber => subscriber.unsubscribe());
   processes.forEach(subprocess => {
-
     subprocess.kill();
   });
   client.disconnectAdapter();
