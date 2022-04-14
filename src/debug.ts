@@ -15,7 +15,7 @@ if (commandOptions.inputPath && !fs.existsSync(commandOptions.inputPath)) {
   throw new Error('File not found. Expected a file path like "samples/php/inputs/input.txt"');
 }
 
-callScript(commandOptions, 'debug').then(rawJSON => {
+callScript(commandOptions, 'debug', process.argv.slice(3)).then(rawJSON => {
   try {
     fs.writeFileSync(__dirname + '/../results/steps.json', rawJSON, 'utf-8');
 

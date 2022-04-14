@@ -138,11 +138,6 @@ describe('samples memory.cpp', () => {
                 type: 'float *',
                 value: '<null>',
                 memoryReference: expect.any(String),
-                memory: {
-                  address: expect.any(String),
-                  data: expect.any(String),
-                  unreadableBytes: expect.any(Number),
-                },
                 variablesReference: expect.any(Number),
                 variables: [
                   {
@@ -182,11 +177,6 @@ describe('samples memory.cpp', () => {
                 type: 'float *',
                 value: '<null>',
                 memoryReference: expect.any(String),
-                memory: {
-                  address: expect.any(String),
-                  data: expect.any(String),
-                  unreadableBytes: expect.any(Number),
-                },
                 variablesReference: expect.any(Number),
                 variables: [
                   {
@@ -226,11 +216,6 @@ describe('samples memory.cpp', () => {
                 type: 'float *',
                 value: '0',
                 memoryReference: expect.any(String),
-                memory: {
-                  address: expect.any(String),
-                  data: expect.any(String),
-                  unreadableBytes: expect.any(Number),
-                },
                 variablesReference: expect.any(Number),
                 variables: [
                   {
@@ -271,11 +256,6 @@ describe('samples memory.cpp', () => {
                 type: 'float *',
                 value: '42',
                 memoryReference: expect.any(String),
-                memory: {
-                  address: expect.any(String),
-                  data: expect.any(String),
-                  unreadableBytes: expect.any(Number),
-                },
                 variablesReference: expect.any(Number),
                 variables: [
                   {
@@ -316,11 +296,6 @@ describe('samples memory.cpp', () => {
                 type: 'float *',
                 value: '42',
                 memoryReference: expect.any(String),
-                memory: {
-                  address: expect.any(String),
-                  data: expect.any(String),
-                  unreadableBytes: expect.any(Number),
-                },
                 variablesReference: expect.any(Number),
                 variables: [
                   {
@@ -361,11 +336,6 @@ describe('samples memory.cpp', () => {
                 type: 'float *',
                 value: '0',
                 memoryReference: expect.any(String),
-                memory: {
-                  address: expect.any(String),
-                  data: expect.any(String),
-                  unreadableBytes: expect.any(Number),
-                },
                 variablesReference: expect.any(Number),
                 variables: [
                   {

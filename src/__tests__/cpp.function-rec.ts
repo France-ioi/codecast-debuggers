@@ -7,7 +7,7 @@ describe('samples function_rec.cpp', () => {
   let snapshots!: StepSnapshot[];
   beforeAll(async () => {
     const stringified = await callScript({
-      sourcePath: './samples/cpp/function_rec.c',
+      sourcePath: './samples/cpp/function_rec.cpp',
       inputPath: '',
       breakpoints: '*',
       help: false,

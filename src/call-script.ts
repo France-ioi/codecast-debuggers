@@ -11,13 +11,18 @@ import { CommandLineOptions } from './command_arguments';
  * @param {LoggerLevel} [logLevel] The log level.
  * @returns {Promise<string>} The stringified JSON.
  */
-export function callScript(commandOptions: CommandLineOptions, logLevel: LoggerLevel = 'off'): Promise<string> {
+export function callScript(
+  commandOptions: CommandLineOptions,
+  logLevel: LoggerLevel = 'off',
+  additionalArgs: string[] = [],
+): Promise<string> {
   const fileExtension = toLanguageExtension(path.extname(commandOptions.sourcePath));
+
   const docker = dockerRunConfigs[fileExtension];
 
   logger.debug(logLevel);
 
-  const { command, args } = dockerRunCommand(docker, logLevel);
+  const { command, args } = dockerRunCommand(docker, commandOptions, additionalArgs, logLevel);
 
   const begin = 'RESULT_BEGIN';
   const end = 'RESULT_END';
@@ -58,11 +63,13 @@ const dockerRunConfigs: Record<LanguageExtension, DockerRunConfig> = {
  */
 const dockerRunCommand = (
   docker: DockerRunConfig,
+  commandOptions: CommandLineOptions,
+  additionalArgs: string[],
   logLevel: LoggerLevel,
 ): { command: string, args: string[] } => {
   //const projectPath = path.dirname(mainFilePath);
   const command = 'docker';
-  let args = [
+  const args = [
     'run',
     '-it',
     '--rm',
@@ -75,9 +82,9 @@ const dockerRunCommand = (
     // ...toDockerMountArgs({ source: path.resolve(paths.selfRoot, projectPath), target: path.resolve(paths.dockerRoot, projectPath) }),
     ...toDockerMountArgs({ source: paths.root(paths.selfRoot), target: paths.root(paths.dockerRoot) }),
     docker.image,
+    commandOptions.sourcePath,
+    ...additionalArgs,
   ].filter(Boolean);
-
-  args = args.concat(process.argv.slice(2));
 
   return { command, args };
 };
