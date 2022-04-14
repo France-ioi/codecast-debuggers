@@ -293,10 +293,11 @@ export interface StackFrame extends DebugProtocol.StackFrame {
   scopes: Scope[],
 }
 export interface Scope extends DebugProtocol.Scope {
-  variables: Variable[],
+  variables: (string | DebugProtocol.Variable)[],
+  variableDetails: VariableHashMap,
 }
 export interface Variable extends DebugProtocol.Variable {
-  variables: Variable[],
+  variables: (string | DebugProtocol.Variable)[],
   memory?: DebugProtocol.ReadMemoryResponse['body'],
 }
 
@@ -491,18 +492,52 @@ interface GetScopeParams {
 
 async function getScope({ context, scope }: GetScopeParams): Promise<Scope> {
   if (!context.canDigScope(scope)) {
-    return { ...scope, variables: [] };
+    return {
+      ...scope,
+      variables: [],
+      variableDetails: {},
+    };
   }
+
+  const variableDetails:VariableHashMap = {};
+  const variableReferencesRetrieved: VariableResultHashMap = {};
+
   const result = await context.client.variables({ variablesReference: scope.variablesReference });
+  variableReferencesRetrieved[scope.variablesReference.toString()] = result;
+
+  const variables = result.variables.filter(context.canDigVariable).map(variable => {
+    const variableIndex = getVariableIndex(variable);
+    if (variableIndex) {
+      variableDetails[variableIndex] = {
+        ...variable,
+        variables: [],
+      };
+
+      return variableIndex;
+    } else {
+      return variable;
+    }
+  });
+
   const isLocalScope = scope.name.startsWith('Local');
   const variablesMaxDepth = isLocalScope ? 3 : 0;
-  const variables = await Promise.all(result.variables.filter(context.canDigVariable).map(variable => getVariable({
+
+  await Promise.all(result.variables.filter(context.canDigVariable).map(variable => getVariable({
     context,
     variable,
     maxDepth: variablesMaxDepth,
-  })));
+  }, variableDetails, variableReferencesRetrieved)));
 
-  return { ...scope, variables };
+  return { ...scope, variables, variableDetails };
+}
+
+interface VariableHashMap {
+  [reference:string]: Variable,
+}
+interface VariableResultHashMap {
+  [reference:string]: {
+    variables: DebugProtocol.Variable[],
+  },
 }
 
 interface GetVariableParams {
@@ -518,25 +553,69 @@ interface GetVariableParams {
   maxDepth: number,
 }
 
-async function getVariable({ context, maxDepth, variable }: GetVariableParams, currentDepth = 0): Promise<Variable> {
+/**
+ * Get a variable index of a variable.
+ *
+ * @param variable The variable.
+ * @returns string|null The index or null. If null, the variable has no reference.
+ */
+function getVariableIndex(variable: DebugProtocol.Variable): string|null {
+  if (variable.variablesReference == 0) {
+    return null;
+  }
+  if (variable.memoryReference) {
+    return variable.memoryReference;
+  }
+
+  return variable.variablesReference.toString();
+}
+
+async function getVariable(
+  { context, maxDepth, variable }: GetVariableParams,
+  variableDetails: VariableHashMap,
+  variableReferencesRetrieved: VariableResultHashMap,
+  currentDepth = 0
+):Promise<void> {
   const shouldGetSubVariables = variable.variablesReference > 0 && currentDepth <= maxDepth;
   if (!shouldGetSubVariables) {
-    return { ...variable, variables: [] };
+    return;
   }
 
   try {
-    const result = await context.client.variables({ variablesReference: variable.variablesReference });
-    const variables = await Promise.all(result.variables.filter(context.canDigVariable).map(variable => getVariable({
+    const result = (variableReferencesRetrieved[variable.variablesReference]) ?
+      variableReferencesRetrieved[variable.variablesReference] :
+      await context.client.variables({ variablesReference: variable.variablesReference });
+    if (!result) {
+      return;
+    }
+
+    const variables = result.variables.filter(context.canDigVariable).map(curVariable => {
+      const curVariableIndex = getVariableIndex(curVariable);
+      if (curVariableIndex) {
+        variableDetails[curVariableIndex] = {
+          ...curVariable,
+          variables: [],
+        };
+
+        return curVariableIndex;
+      } else {
+        return curVariable;
+      }
+    });
+
+    const variableIndex = (variable.memoryReference) ? variable.memoryReference : variable.variablesReference.toString();
+    if (variableDetails[variableIndex]) {
+      // @ts-ignore
+      variableDetails[variableIndex].variables = variables;
+    }
+
+    await Promise.all(result.variables.filter(context.canDigVariable).map(variable => getVariable({
       context,
       variable,
       maxDepth: maxDepth,
-    }, currentDepth + 1)));
-
-    return { ...variable, variables };
+    }, variableDetails, variableReferencesRetrieved, currentDepth + 1)));
   } catch (error) {
     logger.dir({ variable, error });
-
-    return { ...variable, variables: [] };
   }
 }
 
