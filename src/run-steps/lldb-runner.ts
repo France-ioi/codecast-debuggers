@@ -6,6 +6,7 @@ import { SocketDebugClient } from 'node-debugprotocol-client';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { logger } from '../logger';
 import { MakeRunnerConfig, makeRunner, RunnerOptions, Result, Subprocess } from './runner';
+import tmp from 'tmp';
 
 type Language = 'c' | 'cpp';
 
@@ -204,6 +205,7 @@ function execCompileCommand(command: string): void {
   let compileOutput;
 
   try {
+    logger.debug('Compile command: ' + command);
     compileOutput = cp.execSync(command);
   } catch (e) {
     const error = (e as SpawnSyncReturns<Buffer>).stderr.toString();
@@ -212,7 +214,7 @@ function execCompileCommand(command: string): void {
       error,
     };
   }
-  logger.debug(command, ':', compileOutput);
+  logger.debug('-> ' + compileOutput.toString('utf8'));
 }
 
 // /* eslint-disable @typescript-eslint/naming-convention */
@@ -220,8 +222,43 @@ const configurations: Record<Language, Configuration> = {
   c: {
     compile: mainFilePath => {
       const executablePath = removeExt(mainFilePath);
-      const compileCommand = `gcc -g ${mainFilePath} -o ${executablePath} -ldl`;
+
+      /**
+       * We put a concatenation of code_hooks/initialization.c and the file to compile, into a file in /tmp
+       * The hook code contains what is required to disable output buffering.
+       *
+       * Problem: It doesn't work.
+       * If we execute the executable manually, we get the right output.
+       * (ie. cp.execSync(executablePath).toString('ascii') bellow).
+       *
+       * But when we try to debug, we receive [on exit] { exitCode: 0, signal: 1 }
+       * which might indicate a segfault, or something like that.
+       *
+       * It is possible that the method used in the hook to have an initialization function crashes when used with the debugger.
+       * This requires further investigation.
+       */
+
+      const tmpFile = tmp.fileSync({
+        postfix: 'src.c',
+      });
+      fs.writeSync(tmpFile.fd, fs.readFileSync('code_hooks/initialization.c'));
+      fs.writeSync(tmpFile.fd, fs.readFileSync(mainFilePath));
+
+      // Test: check the content of the file we're going to compile
+      // const data = fs.readFileSync(tmpFile.name, 'utf-8');
+      // console.log(data);
+
+      // Compile the file containing the hook in /tmp :
+      const compileCommand = `gcc -g ${tmpFile.name} -o ${executablePath} -ldl`;
+
+      // Compile the source code without hooks
+      //const compileCommand = `gcc -g ${mainFilePath} -o ${executablePath} -ldl`;
+
       execCompileCommand(compileCommand);
+
+      // Test: execute the program manually and output the result in console.
+      // TODO: Remove after fixing the issue.
+      logger.debug(cp.execSync(executablePath).toString('ascii'));
 
       return { executablePath };
     },
