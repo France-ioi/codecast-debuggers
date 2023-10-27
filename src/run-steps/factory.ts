@@ -1,14 +1,11 @@
 import { Result, RunnerOptions } from './runner';
-import { runStepsWithPHPDebugger } from './php-runner';
-import { runStepsWithPythonDebugger } from './python-runner';
-import { runStepsWithLLDB } from './lldb-runner';
 
-export const runSteps = (language: Language, options: RunnerOptions): Promise<Result> => {
+export const runSteps = async (language: Language, options: RunnerOptions): Promise<Result> => {
   switch (language) {
-    case 'php': return runStepsWithPHPDebugger(options);
-    case 'c': return runStepsWithLLDB('c', options);
-    case 'cpp': return runStepsWithLLDB('cpp', options);
-    case 'python': return runStepsWithPythonDebugger(options);
+    case 'php': return (await import('./php-runner')).runStepsWithPHPDebugger(options);
+    case 'c': return (await import('./lldb-runner')).runStepsWithLLDB('c', options);
+    case 'cpp': return (await import('./lldb-runner')).runStepsWithLLDB('cpp', options);
+    case 'python': return (await import('./python-runner')).runStepsWithPythonDebugger(options);
   }
 };
 
