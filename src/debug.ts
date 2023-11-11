@@ -4,7 +4,8 @@ import { logger } from './logger';
 import { languageByExtension, getRunner, toLanguageExtension } from './run-steps/factory';
 import { Stream } from 'stream';
 import { CommandLineOptions, commandOptions } from './command_arguments';
-import { Runner, StepSnapshot, StepsAcc, TerminationMessage } from './run-steps/runner';
+import { Runner } from './run-steps/runner';
+import { StepSnapshot, StepsAcc, TerminationMessage } from './snapshot';
 
 logger.log(process.argv);
 logger.debug('process args', commandOptions);
@@ -69,7 +70,7 @@ export async function getSteps(commandOptions: CommandLineOptions): Promise<Step
     }
 
     function onTerminate(message: TerminationMessage): void {
-      logger.info('onTerminate', message);
+      logger.info('[debug] onTerminate', message);
       steps.push(message);
       resolve(steps);
     }
@@ -86,16 +87,3 @@ export async function getSteps(commandOptions: CommandLineOptions): Promise<Step
     }).then(r => runner = r);
   });
 }
-
-async function main(commandOptions: CommandLineOptions): Promise<void> {
-  const mainStartTime = process.hrtime();
-  logger.info('main start', mainStartTime);
-  const steps = await getSteps(commandOptions);
-  fs.writeFileSync(__dirname + '/../results/steps.json', JSON.stringify(steps), 'utf-8');
-  const mainDuration = process.hrtime(mainStartTime);
-  logger.log('Main script duration : ', (mainDuration[0] + (mainDuration[1] / 1000000000)));
-}
-
-main(commandOptions)
-  .then(() => process.exit(0))
-  .catch(() => process.exit(1));

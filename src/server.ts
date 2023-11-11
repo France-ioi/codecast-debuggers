@@ -1,13 +1,12 @@
 import fs from 'fs/promises';
 import { logger } from './logger';
 import { Language, extensionByLanguage, getRunner } from './run-steps/factory';
-// import { Stream } from 'stream';
-// import { commandOptions } from './command_arguments';
-import { Runner, StepSnapshot, TerminationMessage } from './run-steps/runner';
+import { Runner } from './run-steps/runner';
 import { WebSocket, WebSocketServer } from 'ws';
 import { config } from './config';
 import path from 'path';
 import { Readable } from 'stream';
+import { StepSnapshot, TerminationMessage } from './snapshot';
 
 export interface RemoteExecutionClientPayload {
   messageId: number,
@@ -42,7 +41,7 @@ function main(): void {
     let runner: Runner | null = null;
     let lastMessageId = 0;
 
-    function onSnapshot(snapshot?: StepSnapshot): void {
+    function onSnapshot(snapshot: StepSnapshot): void {
       logger.debug('snapshot', snapshot);
       ws.send(JSON.stringify({
         messageId: lastMessageId,

@@ -3,6 +3,6 @@ node_modules
 out/
 .vscode/
 vscode-lldb/lldb/
-results/*
+debug-results
 sources
 java-debug

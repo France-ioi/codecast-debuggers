@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { getSteps } from '../debug';
-import { StepSnapshot } from '../run-steps/runner';
+import { StepSnapshot } from '../snapshot';
 
 describe('samples function_rec.cpp', () => {
   let snapshots!: StepSnapshot[];
