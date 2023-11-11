@@ -1,23 +1,14 @@
 import fs from 'fs';
 import path from 'path';
-import { getDiff, applyDiff } from 'recursive-diff';
-import produce, { Patch, enablePatches } from 'immer';
+// import { getDiff, applyDiff } from 'recursive-diff';
+// import produce, { Patch, enablePatches } from 'immer';
 import { LogLevel, SocketDebugClient, Unsubscribable } from 'node-debugprotocol-client';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { logger } from '../logger';
 import { Stream } from 'stream';
 import process from 'process';
-import { setTimeout } from 'timers/promises';
-import { config } from '../config';
 
-enablePatches();
-
-/**
- * Performance measurements.
- */
-let snapshotTotalDuration = 0;
-let diffTotalDuration = 0;
-let produceTotalDuration = 0;
+// enablePatches();
 
 export interface Subprocess {
   kill: () => void,
@@ -76,7 +67,7 @@ export interface MakeRunnerConfig {
 
   /**
    * For some languages, extra steps are required to clean up the env.
-   * For instance, for compiled languages, the runner will removed compiled files.
+   * For instance, for compiled languages, the runner will remove compiled files.
    */
   afterDestroy?: () => Promise<void>,
 }
@@ -87,6 +78,12 @@ interface File {
    */
   relativePath: string,
 }
+
+export interface TerminationMessage {
+  type: string,
+  message: string,
+}
+
 export interface RunnerOptions {
   main: File,
   inputStream: Stream|null,
@@ -94,6 +91,8 @@ export interface RunnerOptions {
   files: Array<File>,
   logLevel?: 'On' | 'Off',
   breakpoints: string,
+  onTerminate: (message: TerminationMessage) => void,
+  onSnapshot: (snapshot: StepSnapshot) => void,
 }
 
 /**
@@ -104,46 +103,49 @@ interface RunStepContext {
   canDigVariable: (variable: DebugProtocol.Variable) => boolean,
   canDigScope: (scope: DebugProtocol.Scope) => boolean,
   breakpoints: string,
+  onSnapshot: RunnerOptions['onSnapshot'],
 }
 
-export type Runner = (options: RunnerOptions) => Promise<Result>;
+export interface Runner {
+  stepIn: () => Promise<void>,
+  stepOut: () => Promise<void>,
+  stepOver: () => Promise<void>,
+  terminate: () => Promise<void>,
+}
+
+export type RunnerFactory = (options: RunnerOptions) => Promise<Runner>;
 
 /**
  * Used by a factory to create a runner per debugger based on the language
  * @param {MakeRunnerConfig} config Injected config per debugger
- * @returns {Runner} runner
+ * @returns {RunnerFactory} runner
  */
 export const makeRunner = ({
   connect,
   afterDestroy = (): Promise<void> => Promise.resolve(),
   canDigScope = (): boolean => true,
   canDigVariable = (): boolean => true,
-}: MakeRunnerConfig): Runner => {
+}: MakeRunnerConfig): RunnerFactory => {
   const destroyed = false;
-  const acc: StepsAcc = [];
+  const lastOutput = {
+    stdout: [] as string[],
+    stderr: [] as string[],
+  };
   const onOutput: Parameters<MakeRunnerConfig['connect']>[0]['onOutput'] = output => {
-    const last = acc.at(-1);
-    if (!last) {
-      return;
-    } // too early to have "real" outputs
-
     logger.debug('Add stdout:', output);
     if (output.category === 'stdout') {
-      last.stdout = [ ...(last?.stdout ?? []), output.output ];
+      lastOutput.stdout = [ ...lastOutput.stdout, output.output ];
     }
     if (output.category === 'stderr') {
-      last.stderr = [ ...(last?.stderr ?? []), output.output ];
+      lastOutput.stderr = [ ...lastOutput.stderr, output.output ];
     }
   };
-  let resolveSteps: () => void = () => {};
-  const steps = new Promise<StepsAcc>(resolve => {
-    resolveSteps = (): void => resolve(acc);
-  });
 
   return async (options: RunnerOptions) => {
     const processes: Subprocess[] = [];
     const subscribers: Unsubscribable[] = [];
     const programPath = path.resolve(process.cwd(), options.main.relativePath);
+    let lastThreadId = 1;
 
     /**
      * Overview:
@@ -168,6 +170,20 @@ export const makeRunner = ({
      *    - return the accumulated steps.
      */
 
+    async function onEnd(exitCode?: number): Promise<void> {
+      logger.debug('[runner] onEnd');
+      if (exitCode !== undefined && exitCode !== 0) {
+        let msg = 'Program ended with an error';
+        if (lastOutput.stderr.length > 0) {
+          msg += ': \n' + lastOutput.stderr.join('');
+        }
+        options.onTerminate({ type: 'terminated', message: msg });
+      } else {
+        options.onTerminate({ type: 'end', message: 'Program ended' });
+      }
+      await destroy('onEnd', { destroyed, client, processes, programPath, subscribers, afterDestroy });
+    }
+
     logger.debug(1, '[runner] connect()');
     const { client } = await connect({
       processes,
@@ -177,32 +193,45 @@ export const makeRunner = ({
       inputPath: options.inputPath,
       logLevel: LogLevel[options.logLevel ?? 'Off'],
       onOutput,
-      beforeInitialize: client => registerEvents(client, resolveSteps),
+      beforeInitialize: client => registerEvents(client, onEnd),
     });
 
     const subscriber = client.onStopped(stoppedEvent => {
       logger.debug('[Event] Stopped', stoppedEvent);
       if (stoppedEvent.reason == 'signal') {
-        // @ts-ignore
-        acc[acc.length - 1].terminated = true;
-        // @ts-ignore
-        acc[acc.length - 1].terminatedReason = stoppedEvent.text;
-        resolveSteps();
+        options.onTerminate({ type: 'signal', message: stoppedEvent.text || '' });
 
         return;
       }
+
+      if (typeof stoppedEvent.threadId !== 'number') {
+        return;
+      }
+      lastThreadId = stoppedEvent.threadId;
 
       const reasons = [ 'breakpoint', 'step' ];
-      if (!reasons.includes(stoppedEvent.reason) || typeof stoppedEvent.threadId !== 'number') {
+      if (!reasons.includes(stoppedEvent.reason)) {
         return;
       }
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      setSnapshotAndAdvance({
-        acc,
+
+      function onSnapshot(snapshot: StepSnapshot): void {
+        snapshot.stdout = lastOutput.stdout;
+        snapshot.stderr = lastOutput.stderr;
+        lastOutput.stdout = [];
+        lastOutput.stderr = [];
+        logger.debug('onSnapshot');
+        logger.dir(snapshot, { colors: true, depth: 10 });
+        options.onSnapshot(snapshot);
+      }
+
+      const snapshotParams = {
         filePaths: [ options.main, ...options.files ].map(file => path.resolve(process.cwd(), file.relativePath)),
-        context: { client, canDigScope, canDigVariable, breakpoints: options.breakpoints },
+        context: { client, canDigScope, canDigVariable, breakpoints: options.breakpoints, onSnapshot: onSnapshot },
         threadId: stoppedEvent.threadId,
-      });
+      };
+
+      void setSnapshot(snapshotParams);
+
     });
     subscribers.push(subscriber);
 
@@ -213,94 +242,50 @@ export const makeRunner = ({
     // send 'configuration done' (in some debuggers this will trigger 'continue' if attach was awaited)
     await client.configurationDone({});
 
-    logger.debug(4, '[runner] await steps');
-    const debuggingStartTime = process.hrtime();
+    logger.debug(4, '[runner] Runner ready');
 
-    const timeout = setTimeout(config.limitTime * 1000, 'timeout');
-    const result = await Promise.race([ steps, timeout ]);
-    if (result == 'timeout') {
-      logger.log('Process timeout reached !');
-
-      // @ts-ignore
-      acc[acc.length - 1].terminated = true;
-      // @ts-ignore
-      acc[acc.length - 1].terminatedReason = 'Debugger time exceeded.';
+    async function stepIn(): Promise<void> {
+      await client.stepIn({ threadId: lastThreadId, granularity: 'instruction' });
     }
 
-    const debuggingDuration = process.hrtime(debuggingStartTime);
-    logger.log('Debugging duration : ', (debuggingDuration[0] + (debuggingDuration[1] / 1000000000)));
+    async function stepOut(): Promise<void> {
+      await client.stepOut({ threadId: lastThreadId, granularity: 'instruction' });
+    }
 
-    logger.debug(5, '[runner] destroy');
+    async function stepOver(): Promise<void> {
+      await client.next({ threadId: lastThreadId, granularity: 'instruction' });
+    }
 
-    try {
-      await destroy('runSteps', { destroyed, client, processes, programPath, subscribers, afterDestroy });
-    } catch {
+    async function terminate(): Promise<void> {
+      logger.debug(5, '[runner] destroy');
+
+      try {
+        await destroy('runSteps', { destroyed, client, processes, programPath, subscribers, afterDestroy });
+      } catch {
       // silence is golden.
+      }
     }
-
-    logger.debug(6, '[runner] return result');
-
-    const producedSteps = snapshotsToSteps(acc);
-
-    logger.log('Snapshot total duration (DAP interaction) : ', snapshotTotalDuration);
-    logger.log('Diff total duration : ', diffTotalDuration);
-    logger.log('Produce total duration : ', produceTotalDuration);
 
     return {
-      steps: producedSteps,
+      stepIn,
+      stepOut,
+      stepOver,
+      terminate,
     };
   };
 };
 
-export type Step = Patch[];
-export type Steps = Step[];
-
-export interface Result {
-  error?: string,
-  steps: Steps,
-}
-export interface ResultError {
-
-}
-
-function snapshotsToSteps(snapshots: StepSnapshot[]): Steps {
-  return snapshots.reduce((acc, current, index) => {
-    const previous = snapshots[index-1] ?? {};
-
-    const diffStartTime = process.hrtime();
-    const diff = getDiff(previous, current);
-    const diffDuration = process.hrtime(diffStartTime);
-    diffTotalDuration += diffDuration[0] + (diffDuration[1] / 1000000000);
-
-    /**
-     * Computing the patches is not very straighforward:
-     * 1. Compute the diff between previous & current snapshot using recursive-diff because immer doesn't do that
-     * 2. Apply that diff to the ImmerJS draft to extract patches under ImmerJS formats
-     */
-    const produceStartTime = process.hrtime();
-    produce(
-      previous,
-      draft => void applyDiff(draft, diff),
-      patches => void acc.push(patches),
-    );
-    const produceDuration = process.hrtime(produceStartTime);
-    produceTotalDuration += produceDuration[0] + (produceDuration[1] / 1000000000);
-
-    return acc;
-  }, [] as Steps);
-}
 
 type Output = DebugProtocol.OutputEvent['body'];
 
-export type StepsAcc = StepSnapshot[];
+export type StepsAcc = (StepSnapshot | TerminationMessage)[];
 
 export interface StepSnapshot {
   stackFrames: StackFrame[],
   stdout?: string[],
   stderr?: string[],
-  terminated?: boolean,
-  terminatedReason?: string,
 }
+
 export interface StackFrame extends DebugProtocol.StackFrame {
   scopes: Scope[],
 }
@@ -392,18 +377,16 @@ async function setBreakpoints({ client, programPath, breakpoints }: SetBreakpoin
  * @param {SocketDebugClient} client
  * @param {() => void} onTerminated
  */
-const registerEvents = (client: SocketDebugClient, onTerminated: () => void): void => {
+const registerEvents = (client: SocketDebugClient, onTerminated: (exitCode?: number) => Promise<void>): void => {
   client.onContinued(event => logger.debug('[Event] Continued', event));
   client.onExited(event => {
     logger.debug('[Event] Exited', event.exitCode);
-    if (event.exitCode === 0) {
-      onTerminated();
-    }
+    void onTerminated(event.exitCode);
   });
   client.onOutput(({ output, ...event }) => logger.debug('[Event] Output', JSON.stringify(output), event));
   client.onTerminated(event => {
-    logger.debug('[Event] Terminated − resolve steps', event ?? '');
-    onTerminated();
+    logger.debug('[Event] Terminated', event ?? '');
+    void onTerminated();
     client.disconnectAdapter();
   });
 
@@ -412,12 +395,7 @@ const registerEvents = (client: SocketDebugClient, onTerminated: () => void): vo
   });
 };
 
-interface SetSnapshotAndStepInParams {
-
-  /**
-   * Accumulator to push steps to. Must be an original (not cloned) mutable array
-   */
-  acc: StepsAcc,
+interface SetSnapshotParams {
 
   /**
    * absolute paths
@@ -427,34 +405,18 @@ interface SetSnapshotAndStepInParams {
   threadId: GetSnapshotParams['threadId'],
 }
 
-async function setSnapshotAndAdvance({ context, acc, filePaths, threadId }: SetSnapshotAndStepInParams): Promise<void> {
-  const i = acc.length + 1;
-
+async function setSnapshot({ context, filePaths, threadId }: SetSnapshotParams): Promise<void> {
   try {
-    logger.debug('Execute steps', i);
-
-    const snapshotStartTime = process.hrtime();
+    logger.debug('setSnapshot');
     const snapshot = await getSnapshot({ context, filePaths, threadId });
-    const snapshotHrDuration = process.hrtime(snapshotStartTime);
-    snapshotTotalDuration += snapshotHrDuration[0] + (snapshotHrDuration[1] / 1000000000);
-
-    //logger.dir({ snapshot }, { colors: true, depth: 10 });
 
     if (snapshot.stackFrames.length > 0) {
-      acc.push(snapshot);
-    }
-
-    if (context.breakpoints == '*') {
-      if (snapshot.stackFrames.some(isStackFrameOfSourceFile(filePaths))) {
-        await context.client.stepIn({ threadId, granularity: 'instruction' });
-      } else {
-        await context.client.stepOut({ threadId, granularity: 'instruction' });
-      }
+      context.onSnapshot(snapshot);
     } else {
-      await context.client.continue({ threadId });
+      await context.client.stepIn({ threadId: threadId, granularity: 'instruction' });
     }
   } catch (error) {
-    logger.debug('Failed at step', i, error);
+    logger.debug('getSnapshot Failed', error);
   }
 }
 
@@ -474,7 +436,6 @@ interface GetSnapshotParams {
 
 async function getSnapshot({ context, filePaths, threadId }: GetSnapshotParams): Promise<StepSnapshot> {
   const result = await context.client.stackTrace({ threadId });
-  //logger.dir({ filePaths });
   const stackFrames = await Promise.all(
     result.stackFrames
       .filter(isStackFrameOfSourceFile(filePaths))

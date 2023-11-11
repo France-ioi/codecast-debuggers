@@ -6,12 +6,16 @@
   "scripts": {
     "prepare": "husky install",
     "build:ts": "tsc",
+    "watch:ts": "tsc -w",
     "build:lldb": "docker build -f ./LLDB_Dockerfile . -t lldb-debugger",
     "build:php": "docker build -f ./PHP_Dockerfile . -t php-debugger",
     "build:python": "docker build -f ./Python_Dockerfile . -t python-debugger",
+    "build:java": "docker build -f ./Java_Dockerfile . -t java-debugger",
     "debug": "LOG_LEVEL=debug node out/debug.js",
     "lint": "eslint src",
+    "lint:fix": "eslint --fix src",
     "pretest": "npm run build:ts",
+    "server": "LOG_LEVEL=debug node out/server.js",
     "test": "jest src"
   },
   "author": "",
@@ -23,12 +27,14 @@
     "node-pty": "^0.10.1",
     "recursive-diff": "^1.0.8",
     "tmp": "^0.2.1",
-    "ts-command-line-args": "^2.2.1"
+    "ts-command-line-args": "^2.2.1",
+    "ws": "^8.14.2"
   },
   "devDependencies": {
     "@types/jest": "^27.4.0",
     "@types/node": "^17.0.17",
     "@types/tmp": "^0.2.3",
+    "@types/ws": "^8.5.4",
     "@typescript-eslint/eslint-plugin": "^5.12.0",
     "@typescript-eslint/parser": "^5.12.0",
     "eslint": "^8.9.0",

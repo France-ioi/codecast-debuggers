@@ -1,20 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { callScript } from '../call-script';
-import { Result, StepSnapshot } from '../run-steps/runner';
-import { reconstructSnapshotsFromSteps } from '../reconstruct-snapshots';
+import { getSteps } from '../debug';
+import { StepSnapshot } from '../run-steps/runner';
 
 describe('samples hello_world.cpp', () => {
   let snapshots!: StepSnapshot[];
   beforeAll(async () => {
-    const stringified = await callScript({
-      sourcePath: './samples/cpp/hello_world.cpp',
-      inputPath: '',
-      breakpoints: '*',
-      help: false,
-    }, 'off');
-
-    const result = JSON.parse(stringified) as Result;
-    snapshots = reconstructSnapshotsFromSteps(result.steps);
+    snapshots = await getSteps({ sourcePath: './samples/cpp/hello_world.cpp', inputPath: '', breakpoints: '*', help: false }) as StepSnapshot[];
   });
 
   it('should have valid outputs', () => {

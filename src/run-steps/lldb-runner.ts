@@ -5,12 +5,12 @@ import * as pty from 'node-pty';
 import { SocketDebugClient } from 'node-debugprotocol-client';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { logger } from '../logger';
-import { MakeRunnerConfig, makeRunner, RunnerOptions, Result, Subprocess } from './runner';
+import { MakeRunnerConfig, makeRunner, RunnerOptions, Subprocess, Runner } from './runner';
 import tmp from 'tmp';
 
 type Language = 'c' | 'cpp';
 
-export const runStepsWithLLDB = (language: Language, options: RunnerOptions): Promise<Result> => {
+export const runStepsWithLLDB = (language: Language, options: RunnerOptions): Promise<Runner> => {
   const config = configurations[language];
   let executablePath: string | null = null;
 

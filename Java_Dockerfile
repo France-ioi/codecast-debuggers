@@ -1,0 +1,10 @@
+FROM eclipse-temurin:17-jdk-alpine
+
+COPY ./java-debug /usr/project/java-debug
+RUN cd /usr/project/java-debug && ./mvnw clean install
+
+ENV ROOT=/usr/project
+WORKDIR ${ROOT}
+
+ENTRYPOINT ["node", "./out/script.js"]
+CMD [""]

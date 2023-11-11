@@ -43,10 +43,6 @@ module.exports = {
       '@typescript-eslint/consistent-type-definitions': ['error', 'interface'],
       '@typescript-eslint/prefer-for-of': ['error'],
       '@typescript-eslint/semi': ['error'],
-      'max-len': [
-          'error',
-          { 'code': 140 },
-      ],
       '@typescript-eslint/member-delimiter-style': ['error', {
           "multiline": { "delimiter": "comma", "requireLast": true },
           "singleline": { "delimiter": "comma", "requireLast": false },

@@ -1,10 +1,13 @@
 import cp from 'child_process';
+import fs from 'fs';
 import path from 'path';
 import { SocketDebugClient } from 'node-debugprotocol-client';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { logger } from '../logger';
 import { makeRunner, MakeRunnerConfig, Subprocess } from './runner';
 import { Stream } from 'stream';
+import { getDockerPort } from '../utils';
+import { config } from '../config';
 
 export const runStepsWithPythonDebugger = makeRunner({
   connect: params => connect(params),
@@ -27,10 +30,10 @@ const connect: MakeRunnerConfig['connect'] = async ({ processes, programPath, lo
   const language = 'Python';
   const dap = {
     host: 'localhost',
-    port: 4711,
+    port: getDockerPort(),
   };
 
-  logger.debug(1, '[Python StepsRunner] start adapter server');
+  logger.debug(1, '[Python StepsRunner] start adapter server test');
   await spawnDebugAdapterServer(dap, processes, inputStream);
 
   logger.debug(2, '[Python StepsRunner] instantiate SocketDebugClient');
@@ -41,11 +44,41 @@ const connect: MakeRunnerConfig['connect'] = async ({ processes, programPath, lo
     logLevel,
   });
 
+  let stderrTraceback = 0;
   client.onOutput(event => {
-    // Sometimes PyDebug emits stdouts and \n separately,
-    // because of that we have to filter out only-whitespace outputs
-    if ((event.category === 'stdout' || event.category === 'stderr') && event.output.trim()) {
+    if (event.category === 'stdout') {
       onOutput(event);
+    } else if (event.category === 'stderr') {
+      // Traceback (most recent call last):
+      //   File "/usr/local/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+      //     return _run_code(code, main_globals, None,
+      //   File "/usr/local/lib/python3.10/runpy.py", line 86, in _run_code
+      //     exec(code, run_globals)
+      //   File "/usr/local/lib/python3.10/site-packages/debugpy/adapter/../../debugpy/launcher/../../debugpy/__main__.py", line 39, in <module>
+      //     cli.main()
+      //   File "/usr/local/lib/python3.10/site-packages/debugpy/adapter/../../debugpy/launcher/../../debugpy/../debugpy/server/cli.py", line 430, in main
+      //     run()
+      //   File "/usr/local/lib/python3.10/site-packages/debugpy/adapter/../../debugpy/launcher/../../debugpy/../debugpy/server/cli.py", line 284, in run_file
+      //     runpy.run_path(target, run_name="__main__")
+      //   File "/usr/local/lib/python3.10/site-packages/debugpy/_vendored/pydevd/_pydevd_bundle/pydevd_runpy.py", line 320, in run_path
+      //     code, fname = _get_code_from_file(run_name, path_name)
+      //   File "/usr/local/lib/python3.10/site-packages/debugpy/_vendored/pydevd/_pydevd_bundle/pydevd_runpy.py", line 294, in _get_code_from_file
+      //     code = compile(f.read(), fname, 'exec')
+      //   File "/var/www/codecast-debuggers/sources/Code 1.py", line 4
+      if (stderrTraceback === 0 && event.output.includes('Traceback')) {
+        stderrTraceback = 1;
+        onOutput({ ...event, output: 'Traceback (most recent call last):\n' });
+      }
+      if (stderrTraceback != 1) {
+        onOutput(event);
+
+        return;
+      }
+      const idx = event.output.indexOf(`File "${programPath}"`);
+      if (idx !== -1) {
+        stderrTraceback = 2;
+        onOutput({ ...event, output: event.output.slice(idx) });
+      }
     }
   });
 
@@ -65,6 +98,7 @@ const connect: MakeRunnerConfig['connect'] = async ({ processes, programPath, lo
   logger.debug(5, '[Python StepsRunner] initialize client');
   const initializeResponse = await client.initialize({
     adapterID: language,
+    // columnsStartAt1: false, // not actually supported by debugpy for some reason
     pathFormat: 'path',
     supportsMemoryEvent: true,
     supportsMemoryReferences: true,
@@ -74,7 +108,7 @@ const connect: MakeRunnerConfig['connect'] = async ({ processes, programPath, lo
    * Initialize Response :  {
    *   supportsCompletionsRequest: true,
    *   supportsConditionalBreakpoints: true,
-   *   supportsConfigurationDoneRequest: true,
+   *  7 supportsConfigurationDoneRequest: true,
    *   supportsDebuggerProperties: true,
    *   supportsDelayedStackTraceLoading: true,
    *   supportsEvaluateForHovers: true,
@@ -104,7 +138,7 @@ const connect: MakeRunnerConfig['connect'] = async ({ processes, programPath, lo
    */
   logger.debug('Initialize Response : ', initializeResponse);
 
-  logger.debug(6, '[Python StepsRunner] launch client');
+  logger.debug(6, '[Python StepsRunner] launch client', programPath);
   const launched = client.launch({
     program: programPath,
     justMyCode: false,
@@ -128,17 +162,47 @@ async function spawnDebugAdapterServer(
   const debugPyFolderPath = findDebugPyFolder();
 
   return new Promise<void>(resolve => {
+    // Create a file for debugpy to log to
+    const logDirPath = path.join('/tmp', 'debugpy-' + dap.port.toString());
+    fs.mkdirSync(logDirPath, { recursive: true });
+
     const subprocessParams = [
+      'docker',
+      'run',
+      '--rm',
+      '-v',
+      `${config.sourcesPath}:${config.sourcesPath}:ro`,
+      '-v',
+      `${logDirPath}:${logDirPath}`,
+      '-p',
+      `${dap.port.toString()}:4000`,
+      'python-debugger',
+      'python',
       path.resolve(debugPyFolderPath, 'adapter'),
       '--host',
-      dap.host,
+      '0.0.0.0',
       '--port',
-      dap.port.toString(),
-      '--log-stderr',
+      '4000',
+      '--log-dir',
+      logDirPath,
     ];
-    logger.log('Spawn python', subprocessParams);
 
-    const subprocess = cp.spawn('python', subprocessParams, {
+    const watcher = fs.watch(logDirPath, {}, (type, filename) => {
+      logger.debug('watcher', type, filename);
+      if (type == 'change') {
+        const log = fs.readFileSync(path.join(logDirPath, filename), 'utf-8');
+        if (log.includes('Listening for incoming Client connections')) {
+          logger.debug('[Python StepsRunner] resolve');
+          resolve();
+          watcher.close();
+        }
+      }
+    });
+
+    logger.log('Spawn python', subprocessParams);
+    logger.log('cmdline', subprocessParams.join(' '));
+
+    const subprocess = cp.spawn(subprocessParams[0] as string, subprocessParams.slice(1), {
       stdio: [ (inputStream) ? inputStream : 'ignore', 'pipe', 'pipe' ],
     });
     processes.push(subprocess);
@@ -154,22 +218,25 @@ async function spawnDebugAdapterServer(
       if (message.includes('Listening for incoming Client connections')) {
         logger.debug('[Python StepsRunner] resolve');
         resolve();
+      } else {
+        logger.debug('[Python StepsRunner] stderr', message);
       }
     });
   });
 }
 
 function findDebugPyFolder(): string {
-  const found = findByName('debugpy').find(folderPath => folderPath.includes('python')); // take first with "python"
-  if (!found) {
-    throw new Error('DebugPy folder not found');
-  }
+  return '/usr/local/lib/python3.10/site-packages/debugpy';
+  // const found = findByName('debugpy').find(folderPath => folderPath.includes('python')); // take first with "python"
+  // if (!found) {
+  //   throw new Error('DebugPy folder not found');
+  // }
 
-  return found;
+  // return found;
 }
 
-function findByName(name: string, root = '/'): string[] {
-  const output = cp.execSync(`find ${root} -name ${name}`, { stdio: [ 'ignore', 'pipe', 'ignore' ] });
+// function findByName(name: string, root = '/'): string[] {
+//   const output = cp.execSync(`find ${root} -name ${name}`, { stdio: [ 'ignore', 'pipe', 'ignore' ] });
 
-  return output.toString('utf-8').split('\n').slice(0, -1); // last one is empty string, remove it
-}
+//   return output.toString('utf-8').split('\n').slice(0, -1); // last one is empty string, remove it
+// }

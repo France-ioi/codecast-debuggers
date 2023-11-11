@@ -1,6 +1,6 @@
-import { Result, RunnerOptions } from './runner';
+import { RunnerOptions, Runner } from './runner';
 
-export const runSteps = async (language: Language, options: RunnerOptions): Promise<Result> => {
+export const getRunner = async (language: Language, options: RunnerOptions): Promise<Runner> => {
   switch (language) {
     case 'php': return (await import('./php-runner')).runStepsWithPHPDebugger(options);
     case 'c': return (await import('./lldb-runner')).runStepsWithLLDB('c', options);
@@ -24,4 +24,11 @@ export const languageByExtension: Record<LanguageExtension, Language> = {
   '.cpp': 'cpp',
   '.php': 'php',
   '.py': 'python',
+};
+
+export const extensionByLanguage: Record<Language, LanguageExtension> = {
+  'c': '.c',
+  'cpp': '.cpp',
+  'php': '.php',
+  'python': '.py',
 };
