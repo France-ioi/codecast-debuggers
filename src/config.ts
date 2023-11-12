@@ -8,6 +8,7 @@ export interface Config {
   server: {
     port: number,
     inactivityTimeout: number,
+    freeMemoryLimit?: number,
   },
 }
 
@@ -19,5 +20,6 @@ export const config: Config = {
   server: {
     port: 8080,
     inactivityTimeout: 5 * 60000,
+    freeMemoryLimit: 100 * 1024 * 1024,
   },
 };

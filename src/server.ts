@@ -8,6 +8,7 @@ import path from 'path';
 import { Readable } from 'stream';
 import { StepSnapshot, TerminationMessage } from './snapshot';
 import { getUid } from './utils';
+import { freemem } from 'os';
 
 export interface RemoteExecutionClientPayload {
   messageId: number,
@@ -39,6 +40,22 @@ function main(): void {
   logger.info(`Server started on port ${config.server.port}`);
 
   wss.on('connection', (ws: WebSocket) => {
+    if (config.server.freeMemoryLimit && freemem() < config.server.freeMemoryLimit) {
+      ws.send(JSON.stringify({
+        messageId: 0,
+        message: {
+          success: false,
+          error: {
+            type: 'unavailable',
+            message: 'Server is out of memory',
+          },
+        },
+      } as RemoteExecutionServerPayload));
+      ws.close();
+
+      return;
+    }
+
     let runner: Runner | null = null;
     let lastMessageId = 0;
 
