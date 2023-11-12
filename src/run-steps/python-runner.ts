@@ -4,36 +4,48 @@ import path from 'path';
 import { SocketDebugClient } from 'node-debugprotocol-client';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { logger } from '../logger';
-import { makeRunner, MakeRunnerConfig, Subprocess } from './runner';
+import { makeRunner, MakeRunnerConfig, Runner, RunnerOptions, Subprocess } from './runner';
 import { Stream } from 'stream';
-import { getDockerPort } from '../utils';
+import { config } from '../config';
 
-export const runStepsWithPythonDebugger = makeRunner({
-  connect: params => connect(params),
-  canDigVariable: variable => {
-    const undiggableNames = [ 'special variables', 'function variables', 'class variables', '__builtins__' ];
-    if (undiggableNames.includes(variable.name)) {
-      return false;
-    }
+export const runStepsWithPythonDebugger = (options: RunnerOptions): Promise<Runner> => {
+  const runnerProgramPath = path.join(config.sourcesPath, 'code-' + options.uid.toString() + '.py');
+  fs.writeFileSync(runnerProgramPath, fs.readFileSync(options.main.relativePath, 'utf-8') + '\npass\n');
 
-    const undiggableTypes = [ 'module' ];
-    if (variable.type && undiggableTypes.includes(variable.type)) {
-      return false;
-    }
+  const runner = makeRunner({
+    connect: params => connect(params),
+    canDigVariable: variable => {
+      const undiggableNames = [ 'special variables', 'function variables', 'class variables', '__builtins__' ];
+      if (undiggableNames.includes(variable.name)) {
+        return false;
+      }
 
-    return true;
-  },
-});
+      const undiggableTypes = [ 'module' ];
+      if (variable.type && undiggableTypes.includes(variable.type)) {
+        return false;
+      }
 
-const connect: MakeRunnerConfig['connect'] = async ({ processes, programPath, logLevel, onOutput, beforeInitialize, inputStream }) => {
+      return true;
+    },
+  });
+
+  return runner({ ...options, main: { relativePath: runnerProgramPath } } as RunnerOptions);
+};
+
+const connect: MakeRunnerConfig['connect'] = async ({ uid, processes, programPath, logLevel, onOutput, beforeInitialize, inputStream }) => {
   const language = 'Python';
   const dap = {
     host: 'localhost',
-    port: getDockerPort(),
+    port: uid,
   };
 
+  // Add a last line to the program
+  // This is to avoid a bug in debugpy where it doesn't stop on the last line
+  const runnerProgramPath = path.join(config.sourcesPath, 'code-' + dap.port.toString() + '.py');
+  fs.writeFileSync(runnerProgramPath, fs.readFileSync(programPath, 'utf-8') + '\npass\n');
+
   logger.debug(1, '[Python StepsRunner] start adapter server test');
-  await spawnDebugAdapterServer(dap, programPath, processes, inputStream);
+  await spawnDebugAdapterServer(dap, runnerProgramPath, processes, inputStream);
 
   logger.debug(2, '[Python StepsRunner] instantiate SocketDebugClient');
   const client = new SocketDebugClient({
@@ -63,7 +75,7 @@ const connect: MakeRunnerConfig['connect'] = async ({ processes, programPath, lo
 
         return;
       }
-      const idx = event.output.indexOf(`File "${programPath}"`);
+      const idx = event.output.indexOf(`File "${runnerProgramPath}"`);
       if (idx !== -1) {
         stderrTraceback = 2;
         onOutput({ ...event, output: event.output.slice(idx) });
@@ -127,9 +139,9 @@ const connect: MakeRunnerConfig['connect'] = async ({ processes, programPath, lo
    */
   logger.debug('Initialize Response : ', initializeResponse);
 
-  logger.debug(6, '[Python StepsRunner] launch client', programPath);
+  logger.debug(6, '[Python StepsRunner] launch client', runnerProgramPath);
   const launched = client.launch({
-    program: programPath,
+    program: runnerProgramPath,
     justMyCode: false,
   } as DebugProtocol.LaunchRequestArguments);
 

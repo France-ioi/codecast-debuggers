@@ -2,7 +2,7 @@ import { config } from './config';
 
 const usedDockerPorts: { [port: number]: boolean } = {};
 
-export function getDockerPort(): number {
+export function getUid(): number {
   const [ min, max ] = config.dockerPortRange;
   for (let port = min; port < max; port++) {
     if (!usedDockerPorts[port]) {
@@ -12,9 +12,9 @@ export function getDockerPort(): number {
     }
   }
 
-  throw new Error('No free docker ports');
+  throw new Error('No free uid/docker ports');
 }
 
-export function freeDockerPort(port: number): void {
+export function freeUid(port: number): void {
   delete usedDockerPorts[port];
 }

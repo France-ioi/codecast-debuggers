@@ -25,6 +25,7 @@ export interface MakeRunnerConfig {
    * executing reverse queries, etc.
    */
   connect: (input: {
+    uid: number,
 
     /**
      * Runner implementations can push sub processes in that array, they will be killed when the runner is destroyed
@@ -81,6 +82,7 @@ interface File {
 }
 
 export interface RunnerOptions {
+  uid: number,
   main: File,
   inputStream: Stream|null,
   inputPath: string,
@@ -182,6 +184,7 @@ export const makeRunner = ({
 
     logger.debug(1, '[runner] connect()');
     const { client } = await connect({
+      uid: options.uid,
       processes,
       subscribers,
       programPath,
@@ -312,6 +315,7 @@ interface SetBreakpointsConfig {
  * @returns {Promise<void>} returns resolving promise when done.
  */
 async function setBreakpoints({ client, programPath, breakpoints }: SetBreakpointsConfig): Promise<void> {
+  logger.debug('[StepsRunner] set breakpoints', programPath);
   const programCode = await fs.promises.readFile(programPath, 'utf-8');
   const lines = programCode.split('\n').length;
 

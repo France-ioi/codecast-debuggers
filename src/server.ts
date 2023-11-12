@@ -7,6 +7,7 @@ import { config } from './config';
 import path from 'path';
 import { Readable } from 'stream';
 import { StepSnapshot, TerminationMessage } from './snapshot';
+import { getUid } from './utils';
 
 export interface RemoteExecutionClientPayload {
   messageId: number,
@@ -77,6 +78,7 @@ function main(): void {
       await fs.writeFile(sourcePath, sourceCode);
 
       runner = await getRunner(language, {
+        uid: getUid(),
         logLevel: logger.level === 'debug' ? 'On' : 'Off',
         main: { relativePath: sourcePath },
         inputStream,

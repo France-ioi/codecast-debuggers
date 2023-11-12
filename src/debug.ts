@@ -6,6 +6,7 @@ import { Stream } from 'stream';
 import { CommandLineOptions, commandOptions } from './command_arguments';
 import { Runner } from './run-steps/runner';
 import { StepSnapshot, StepsAcc, TerminationMessage } from './snapshot';
+import { getUid } from './utils';
 
 logger.log(process.argv);
 logger.debug('process args', commandOptions);
@@ -76,6 +77,7 @@ export async function getSteps(commandOptions: CommandLineOptions): Promise<Step
     }
 
     void getRunner(language, {
+      uid: getUid(),
       logLevel: logger.level === 'debug' ? 'On' : 'Off',
       main: { relativePath: commandOptions.sourcePath },
       inputStream: inputStream,
