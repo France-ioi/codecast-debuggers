@@ -18,8 +18,7 @@ describe('samples hello_world.py', () => {
     expect(snapshots[15]?.stderr).toContainEqual(expect.stringContaining('Goodbye world'));
   });
 
-  // TODO :: I'm not too sure about keeping such a strict test
-/*  it('should have valid steps', () => {
+  it('should have valid steps', () => {
     expect(snapshots[0]?.stackFrames).toEqual(expect.arrayContaining([
       {
         id: 2,
@@ -27,7 +26,7 @@ describe('samples hello_world.py', () => {
         line: 1,
         column: 1,
         source: {
-          path: '/usr/project/samples/python/hello_world.py',
+          path: expect.any(String),
           sourceReference: 0,
         },
         scopes: expect.arrayContaining([
@@ -47,7 +46,7 @@ describe('samples hello_world.py', () => {
         line: 3,
         column: 1,
         source: expect.objectContaining({
-          path: '/usr/project/samples/python/hello_world.py',
+          path: expect.any(String),
         }),
         scopes: expect.arrayContaining([
           expect.objectContaining({
@@ -66,7 +65,7 @@ describe('samples hello_world.py', () => {
         line: 4,
         column: 1,
         source: expect.objectContaining({
-          path: '/usr/project/samples/python/hello_world.py',
+          path: expect.any(String),
         }),
         scopes: expect.arrayContaining([
           expect.objectContaining({
@@ -80,7 +79,6 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'x',
                 variablesReference: expect.any(Number),
-                variables: [],
               },
             ],
           }),
@@ -94,7 +92,7 @@ describe('samples hello_world.py', () => {
         line: 5,
         column: 1,
         source: expect.objectContaining({
-          path: '/usr/project/samples/python/hello_world.py',
+          path: expect.any(String),
         }),
         scopes: expect.arrayContaining([
           expect.objectContaining({
@@ -108,7 +106,6 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'x',
                 variablesReference: expect.any(Number),
-                variables: [],
               },
               {
                 name: 'y',
@@ -116,7 +113,6 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'y',
                 variablesReference: expect.any(Number),
-                variables: [],
               },
             ],
           }),
@@ -130,7 +126,7 @@ describe('samples hello_world.py', () => {
         line: 6,
         column: 1,
         source: expect.objectContaining({
-          path: '/usr/project/samples/python/hello_world.py',
+          path: expect.any(String),
         }),
         scopes: expect.arrayContaining([
           expect.objectContaining({
@@ -144,7 +140,6 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'i',
                 variablesReference: expect.any(Number),
-                variables: [],
               },
               {
                 name: 'x',
@@ -152,7 +147,6 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'x',
                 variablesReference: expect.any(Number),
-                variables: [],
               },
               {
                 name: 'y',
@@ -160,7 +154,6 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'y',
                 variablesReference: expect.any(Number),
-                variables: [],
               },
             ],
           }),
@@ -174,7 +167,7 @@ describe('samples hello_world.py', () => {
         line: 7,
         column: 1,
         source: expect.objectContaining({
-          path: '/usr/project/samples/python/hello_world.py',
+          path: expect.any(String),
         }),
         scopes: expect.arrayContaining([
           expect.objectContaining({
@@ -188,7 +181,6 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'i',
                 variablesReference: expect.any(Number),
-                variables: [],
               },
               {
                 name: 'x',
@@ -196,7 +188,6 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'x',
                 variablesReference: expect.any(Number),
-                variables: [],
               },
               {
                 name: 'y',
@@ -204,7 +195,6 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'y',
                 variablesReference: expect.any(Number),
-                variables: [],
               },
             ],
           }),
@@ -218,7 +208,7 @@ describe('samples hello_world.py', () => {
         line: 5,
         column: 1,
         source: expect.objectContaining({
-          path: '/usr/project/samples/python/hello_world.py',
+          path: expect.any(String),
         }),
         scopes: expect.arrayContaining([
           expect.objectContaining({
@@ -232,7 +222,6 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'i',
                 variablesReference: expect.any(Number),
-                variables: [],
               },
               {
                 name: 'x',
@@ -240,7 +229,6 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'x',
                 variablesReference: expect.any(Number),
-                variables: [],
               },
               {
                 name: 'y',
@@ -248,7 +236,6 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'y',
                 variablesReference: expect.any(Number),
-                variables: [],
               },
             ],
           }),
@@ -262,7 +249,7 @@ describe('samples hello_world.py', () => {
         line: 6,
         column: 1,
         source: expect.objectContaining({
-          path: '/usr/project/samples/python/hello_world.py',
+          path: expect.any(String),
         }),
         scopes: expect.arrayContaining([
           expect.objectContaining({
@@ -276,7 +263,6 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'i',
                 variablesReference: expect.any(Number),
-                variables: [],
               },
               {
                 name: 'x',
@@ -284,7 +270,6 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'x',
                 variablesReference: expect.any(Number),
-                variables: [],
               },
               {
                 name: 'y',
@@ -292,7 +277,6 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'y',
                 variablesReference: expect.any(Number),
-                variables: [],
               },
             ],
           }),
@@ -306,7 +290,7 @@ describe('samples hello_world.py', () => {
         line: 7,
         column: 1,
         source: expect.objectContaining({
-          path: '/usr/project/samples/python/hello_world.py',
+          path: expect.any(String),
         }),
         scopes: expect.arrayContaining([
           expect.objectContaining({
@@ -320,7 +304,6 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'i',
                 variablesReference: expect.any(Number),
-                variables: [],
               },
               {
                 name: 'x',
@@ -328,7 +311,6 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'x',
                 variablesReference: expect.any(Number),
-                variables: [],
               },
               {
                 name: 'y',
@@ -336,7 +318,6 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'y',
                 variablesReference: expect.any(Number),
-                variables: [],
               },
             ],
           }),
@@ -350,7 +331,7 @@ describe('samples hello_world.py', () => {
         line: 5,
         column: 1,
         source: expect.objectContaining({
-          path: '/usr/project/samples/python/hello_world.py',
+          path: expect.any(String),
         }),
         scopes: expect.arrayContaining([
           expect.objectContaining({
@@ -364,7 +345,6 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'i',
                 variablesReference: expect.any(Number),
-                variables: [],
               },
               {
                 name: 'x',
@@ -372,7 +352,6 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'x',
                 variablesReference: expect.any(Number),
-                variables: [],
               },
               {
                 name: 'y',
@@ -380,7 +359,6 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'y',
                 variablesReference: expect.any(Number),
-                variables: [],
               },
             ],
           }),
@@ -394,7 +372,7 @@ describe('samples hello_world.py', () => {
         line: 6,
         column: 1,
         source: expect.objectContaining({
-          path: '/usr/project/samples/python/hello_world.py',
+          path: expect.any(String),
         }),
         scopes: expect.arrayContaining([
           expect.objectContaining({
@@ -408,7 +386,6 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'i',
                 variablesReference: expect.any(Number),
-                variables: [],
               },
               {
                 name: 'x',
@@ -416,7 +393,6 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'x',
                 variablesReference: expect.any(Number),
-                variables: [],
               },
               {
                 name: 'y',
@@ -424,7 +400,6 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'y',
                 variablesReference: expect.any(Number),
-                variables: [],
               },
             ],
           }),
@@ -438,7 +413,7 @@ describe('samples hello_world.py', () => {
         line: 7,
         column: 1,
         source: expect.objectContaining({
-          path: '/usr/project/samples/python/hello_world.py',
+          path: expect.any(String),
         }),
         scopes: expect.arrayContaining([
           expect.objectContaining({
@@ -452,7 +427,6 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'i',
                 variablesReference: expect.any(Number),
-                variables: [],
               },
               {
                 name: 'x',
@@ -460,7 +434,6 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'x',
                 variablesReference: expect.any(Number),
-                variables: [],
               },
               {
                 name: 'y',
@@ -468,7 +441,6 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'y',
                 variablesReference: expect.any(Number),
-                variables: [],
               },
             ],
           }),
@@ -482,7 +454,7 @@ describe('samples hello_world.py', () => {
         line: 5,
         column: 1,
         source: expect.objectContaining({
-          path: '/usr/project/samples/python/hello_world.py',
+          path: expect.any(String),
         }),
         scopes: expect.arrayContaining([
           expect.objectContaining({
@@ -496,7 +468,6 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'i',
                 variablesReference: expect.any(Number),
-                variables: [],
               },
               {
                 name: 'x',
@@ -504,7 +475,6 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'x',
                 variablesReference: expect.any(Number),
-                variables: [],
               },
               {
                 name: 'y',
@@ -512,7 +482,6 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'y',
                 variablesReference: expect.any(Number),
-                variables: [],
               },
             ],
           }),
@@ -526,7 +495,7 @@ describe('samples hello_world.py', () => {
         line: 8,
         column: 1,
         source: expect.objectContaining({
-          path: '/usr/project/samples/python/hello_world.py',
+          path: expect.any(String),
         }),
         scopes: expect.arrayContaining([
           expect.objectContaining({
@@ -540,7 +509,6 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'i',
                 variablesReference: expect.any(Number),
-                variables: [],
               },
               {
                 name: 'x',
@@ -548,7 +516,6 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'x',
                 variablesReference: expect.any(Number),
-                variables: [],
               },
               {
                 name: 'y',
@@ -556,7 +523,6 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'y',
                 variablesReference: expect.any(Number),
-                variables: [],
               },
             ],
           }),
@@ -570,7 +536,7 @@ describe('samples hello_world.py', () => {
         line: 10,
         column: 1,
         source: expect.objectContaining({
-          path: '/usr/project/samples/python/hello_world.py',
+          path: expect.any(String),
         }),
         scopes: expect.arrayContaining([
           expect.objectContaining({
@@ -584,7 +550,6 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'i',
                 variablesReference: expect.any(Number),
-                variables: [],
               },
               {
                 name: 'x',
@@ -592,7 +557,6 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'x',
                 variablesReference: expect.any(Number),
-                variables: [],
               },
               {
                 name: 'y',
@@ -600,12 +564,11 @@ describe('samples hello_world.py', () => {
                 type: 'int',
                 evaluateName: 'y',
                 variablesReference: expect.any(Number),
-                variables: [],
               },
             ],
           }),
         ]),
       },
     ]));
-  });*/
+  });
 });
