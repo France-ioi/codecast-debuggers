@@ -38,15 +38,18 @@ const connect = (
   language: Language,
   config: Configuration,
   onExecutablePath: (thePath: string) => void,
-): MakeRunnerConfig['connect'] => async ({ beforeInitialize, logLevel, onOutput, processes, programPath, inputPath }) => {
+): MakeRunnerConfig['connect'] => async ({ uid, beforeInitialize, logLevel, onOutput, processes, programPath, inputPath }) => {
   const connectLLDBTime = process.hrtime();
   const dap = {
     host: 'localhost',
-    port: 4711,
+    port: uid,
   };
 
+  const executablePath = config.compile(programPath).executablePath;
+  onExecutablePath(executablePath);
+
   logger.debug(1, '[LLDB StepsRunner] start adapter server');
-  await spawnAdapterServer(dap, processes);
+  await spawnAdapterServer(dap, processes, executablePath, uid);
 
   logger.debug(2, '[LLDB StepsRunner] instantiate SocketDebugClient');
   const client = new SocketDebugClient({
@@ -66,6 +69,7 @@ const connect = (
   const initializeResponse = await client.initialize({
     adapterID: language,
     pathFormat: 'path',
+    supportsRunInTerminalRequest: false,
     supportsMemoryEvent: true,
     supportsMemoryReferences: true,
   });
@@ -95,9 +99,6 @@ const connect = (
    */
   logger.debug('Initialize Response : ', initializeResponse);
 
-  const executablePath = config.compile(programPath).executablePath;
-  onExecutablePath(executablePath);
-
   const spawnedTerminalRequest = new Promise<void>((resolve, reject) => {
     client.onRunInTerminalRequest(({ args: [ argv, ...args ], cwd, env, kind, title }) => {
       if (!argv) {
@@ -105,7 +106,8 @@ const connect = (
       }
       logger.debug('[Event] RunInTerminalRequest', { argv, args, cwd, kind, title });
       logger.log(argv, args);
-      const subprocess = pty.spawn('bash', [], {
+      //const subprocess = pty.spawn('bash', [], {
+      const subprocess = pty.spawn('docker', [ 'exec', '-it', 'lldb-' + uid.toString(), argv, ...args ], {
         name: title ?? 'reverse_command',
         cols: 80,
         rows: 1,
@@ -114,6 +116,10 @@ const connect = (
         env: { ...env, RUST_BACKTRACE: 'full' },
       });
       subprocess.onData(message => {
+        logger.debug('[RIT]', message);
+        if (message == '\u001b[2J\u001b[1;1H') { // clear screen
+          return;
+        }
         onOutput({
           category: 'stdout',
           // since pty adds a \n when emitting command output, remove one from the message
@@ -126,7 +132,7 @@ const connect = (
           reject(new Error(`Terminal request exited with code ${e.exitCode}`));
         }
       });
-      subprocess.write(`${argv} ${args.join(' ')}\r`);
+      //subprocess.write(`${argv} ${args.join(' ')}\r`);
 
       processes.push(subprocess);
 
@@ -154,21 +160,38 @@ const connect = (
   return { client };
 };
 
-async function spawnAdapterServer(dap: { host: string, port: number }, processes: Subprocess[]): Promise<void> {
+async function spawnAdapterServer(dap: { host: string, port: number }, processes: Subprocess[], executablePath: string, uid: number): Promise<void> {
   logger.debug('Start LLDB DAP Server on port', dap.port);
 
-  const root = path.join(process.cwd(), 'vscode-lldb');
+  const root = '/usr/project/vscode-lldb';
   const liblldb = path.join(root, './lldb/lib/liblldb.so');
-  logger.debug('Start LLDB DAP Server on port', dap.port);
 
-  const executable = path.join(root, 'adapter/codelldb');
-  const args = [ '--liblldb', liblldb, '--port', dap.port.toString() ];
+  const args = [
+    'docker',
+    'run',
+    '--rm',
+    '--name',
+    'lldb-' + uid.toString(),
+    //    '-v',
+    //`${executablePath}:${executablePath}:ro`,
+    '-v',
+    `${executablePath}.cpp:${executablePath}.cpp:ro`,
+    '-p',
+    `${dap.port.toString()}:4000`,
+    'lldb-debugger',
+    '/usr/project/vscode-lldb/lldb-startup.sh',
+    `${executablePath}`,
+    path.join(root, 'adapter/codelldb'),
+    '--liblldb',
+    liblldb,
+    '--port',
+    '4001',
+  ];
 
   await new Promise<void>(resolve => {
-    logger.debug('Spawn process ', executable, args);
-    const adapter = cp.spawn(executable, args, {
+    logger.debug('Spawn process ', args);
+    const adapter = cp.spawn(args[0] as string, args.slice(1), {
       stdio: [ 'ignore', 'pipe', 'pipe' ],
-      cwd: root,
     });
     processes.push(adapter);
     const resolveOnMessage = (origin: string) => (data: Buffer) => {
@@ -269,11 +292,14 @@ const configurations: Record<Language, Configuration> = {
   cpp: {
     compile: mainFilePath => {
       const executablePath = removeExt(mainFilePath);
-      const compileCommand = `g++ -g ${mainFilePath} -o ${executablePath} -ldl`;
+      const compileCommand = `g++ -g "${mainFilePath}" -o "${executablePath}" -ldl`;
       execCompileCommand(compileCommand);
 
       return { executablePath };
     },
+    launchArgs: {
+      initCommands: [ 'settings set target.disable-aslr false' ],
+    } as DebugProtocol.LaunchRequestArguments,
   },
 };
 const removeExt = (filePath: string): string => filePath.slice(0, -path.extname(filePath).length);

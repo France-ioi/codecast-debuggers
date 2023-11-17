@@ -265,6 +265,10 @@ export const makeRunner = ({
       }
     }
 
+    // Clear any debugger output before starting
+    lastOutput.stdout = [];
+    lastOutput.stderr = [];
+
     return {
       stepIn,
       stepOut,

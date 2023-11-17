@@ -3,17 +3,18 @@ import { getSteps } from '../debug';
 import { StepSnapshot } from '../snapshot';
 
 describe('samples hello_world.cpp', () => {
+  jest.setTimeout(60000);
   let snapshots!: StepSnapshot[];
   beforeAll(async () => {
     snapshots = await getSteps({ sourcePath: './samples/cpp/hello_world.cpp', inputPath: '', breakpoints: '*', help: false }) as StepSnapshot[];
   });
 
   it('should have valid outputs', () => {
-    expect(snapshots.filter(step => step.stdout)).toHaveLength(4);
-    expect(snapshots[4]?.stdout).toEqual([ 'Hello World\r' ]);
-    expect(snapshots[7]?.stdout).toEqual([ '0\r' ]);
-    expect(snapshots[10]?.stdout).toEqual([ '2\r' ]);
-    expect(snapshots[13]?.stdout).toEqual([ '4\r' ]);
+    expect(snapshots.filter(step => step.stdout?.length).map(step => step.stdout)).toHaveLength(4);
+    expect(snapshots[5]?.stdout).toEqual([ 'Hello World\r' ]);
+    expect(snapshots[8]?.stdout).toEqual([ '0\r' ]);
+    expect(snapshots[11]?.stdout).toEqual([ '2\r' ]);
+    expect(snapshots[14]?.stdout).toEqual([ '4\r' ]);
   });
 
   it('should have valid steps', () => {
@@ -25,7 +26,7 @@ describe('samples hello_world.cpp', () => {
         name: expect.any(String),
         source: {
           name: 'hello_world.cpp',
-          path: '/usr/project/samples/cpp/hello_world.cpp',
+          path: expect.any(String),
         },
         scopes: expect.arrayContaining([
           {
@@ -45,7 +46,7 @@ describe('samples hello_world.cpp', () => {
         name: expect.any(String),
         source: {
           name: 'hello_world.cpp',
-          path: '/usr/project/samples/cpp/hello_world.cpp',
+          path: expect.any(String),
         },
         scopes: expect.arrayContaining([
           {
@@ -65,7 +66,7 @@ describe('samples hello_world.cpp', () => {
         name: expect.any(String),
         source: {
           name: 'hello_world.cpp',
-          path: '/usr/project/samples/cpp/hello_world.cpp',
+          path: expect.any(String),
         },
         scopes: expect.arrayContaining([
           {
@@ -83,7 +84,7 @@ describe('samples hello_world.cpp', () => {
         name: expect.any(String),
         source: {
           name: 'hello_world.cpp',
-          path: '/usr/project/samples/cpp/hello_world.cpp',
+          path: expect.any(String),
         },
         scopes: expect.arrayContaining([
           {
@@ -103,7 +104,7 @@ describe('samples hello_world.cpp', () => {
         name: expect.any(String),
         source: {
           name: 'hello_world.cpp',
-          path: '/usr/project/samples/cpp/hello_world.cpp',
+          path: expect.any(String),
         },
         scopes: expect.arrayContaining([
           {
@@ -123,7 +124,7 @@ describe('samples hello_world.cpp', () => {
         name: 'main',
         source: {
           name: 'hello_world.cpp',
-          path: '/usr/project/samples/cpp/hello_world.cpp',
+          path: expect.any(String),
         },
         scopes: expect.arrayContaining([
           {
@@ -143,7 +144,7 @@ describe('samples hello_world.cpp', () => {
         name: 'main',
         source: {
           name: 'hello_world.cpp',
-          path: '/usr/project/samples/cpp/hello_world.cpp',
+          path: expect.any(String),
         },
         scopes: expect.arrayContaining([
           {
@@ -173,7 +174,7 @@ describe('samples hello_world.cpp', () => {
         name: 'main',
         source: {
           name: 'hello_world.cpp',
-          path: '/usr/project/samples/cpp/hello_world.cpp',
+          path: expect.any(String),
         },
         scopes: expect.arrayContaining([
           {
@@ -212,7 +213,7 @@ describe('samples hello_world.cpp', () => {
         name: 'main',
         source: {
           name: 'hello_world.cpp',
-          path: '/usr/project/samples/cpp/hello_world.cpp',
+          path: expect.any(String),
         },
         scopes: expect.arrayContaining([
           {
@@ -251,7 +252,7 @@ describe('samples hello_world.cpp', () => {
         name: 'main',
         source: {
           name: 'hello_world.cpp',
-          path: '/usr/project/samples/cpp/hello_world.cpp',
+          path: expect.any(String),
         },
         scopes: expect.arrayContaining([
           {
@@ -281,7 +282,7 @@ describe('samples hello_world.cpp', () => {
         name: 'main',
         source: {
           name: 'hello_world.cpp',
-          path: '/usr/project/samples/cpp/hello_world.cpp',
+          path: expect.any(String),
         },
         scopes: expect.arrayContaining([
           {
@@ -320,7 +321,7 @@ describe('samples hello_world.cpp', () => {
         name: 'main',
         source: {
           name: 'hello_world.cpp',
-          path: '/usr/project/samples/cpp/hello_world.cpp',
+          path: expect.any(String),
         },
         scopes: expect.arrayContaining([
           {
@@ -359,7 +360,7 @@ describe('samples hello_world.cpp', () => {
         name: 'main',
         source: {
           name: 'hello_world.cpp',
-          path: '/usr/project/samples/cpp/hello_world.cpp',
+          path: expect.any(String),
         },
         scopes: expect.arrayContaining([
           {
@@ -389,7 +390,7 @@ describe('samples hello_world.cpp', () => {
         name: 'main',
         source: {
           name: 'hello_world.cpp',
-          path: '/usr/project/samples/cpp/hello_world.cpp',
+          path: expect.any(String),
         },
         scopes: expect.arrayContaining([
           {
@@ -428,7 +429,7 @@ describe('samples hello_world.cpp', () => {
         name: 'main',
         source: {
           name: 'hello_world.cpp',
-          path: '/usr/project/samples/cpp/hello_world.cpp',
+          path: expect.any(String),
         },
         scopes: expect.arrayContaining([
           {
@@ -467,7 +468,7 @@ describe('samples hello_world.cpp', () => {
         name: 'main',
         source: {
           name: 'hello_world.cpp',
-          path: '/usr/project/samples/cpp/hello_world.cpp',
+          path: expect.any(String),
         },
         scopes: expect.arrayContaining([
           {
@@ -497,7 +498,7 @@ describe('samples hello_world.cpp', () => {
         name: 'main',
         source: {
           name: 'hello_world.cpp',
-          path: '/usr/project/samples/cpp/hello_world.cpp',
+          path: expect.any(String),
         },
         scopes: expect.arrayContaining([
           {

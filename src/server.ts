@@ -15,7 +15,7 @@ export interface RemoteExecutionClientPayload {
   message: {
     action: string,
     answer?: {
-      language: Language,
+      language: string,
       fileName: string,
       sourceCode: string,
       input: string,
@@ -87,7 +87,12 @@ function main(): void {
 
         return;
       }
-      const { language, fileName, sourceCode, input } = msg.message.answer;
+      const { fileName, sourceCode, input } = msg.message.answer;
+      let clientLanguage = msg.message.answer.language;
+      if (clientLanguage == 'unix') {
+        clientLanguage = 'cpp';
+      }
+      const language = clientLanguage as Language;
       const inputStream = input ? Readable.from(input) : null;
       const inputPath = '';
       const sourcePath = path.join(config.sourcesPath, (fileName.split('/').pop() || 'source') + extensionByLanguage[language]);
