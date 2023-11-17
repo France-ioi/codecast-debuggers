@@ -10,7 +10,7 @@ import { config } from '../config';
 
 export const runStepsWithPythonDebugger = (options: RunnerOptions): Promise<Runner> => {
   const runnerProgramPath = path.join(config.sourcesPath, 'code-' + options.uid.toString() + '.py');
-  fs.writeFileSync(runnerProgramPath, fs.readFileSync(options.main.relativePath, 'utf-8') + '\npass\n');
+  fs.writeFileSync(runnerProgramPath, fs.readFileSync(options.main.relativePath, 'utf-8'));
 
   const runner = makeRunner({
     connect: params => connect(params),
