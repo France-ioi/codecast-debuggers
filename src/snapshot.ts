@@ -2,7 +2,7 @@ import { DebugProtocol } from 'vscode-debugprotocol';
 import { RunStepContext } from './run-steps/runner';
 import { logger } from './logger';
 
-export type StepsAcc = (StepSnapshot | TerminationMessage)[];
+export type StepsAcc = StepSnapshot[];
 
 export interface StepSnapshot {
   stackFrames?: StackFrame[],
