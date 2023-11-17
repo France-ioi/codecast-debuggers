@@ -27,11 +27,7 @@ export interface RemoteExecutionServerPayload {
   messageId?: number,
   message: {
     success: boolean,
-    snapshot?: unknown,
-    error?: {
-      type: string,
-      message?: string,
-    },
+    snapshot?: StepSnapshot,
   },
 }
 
@@ -45,9 +41,9 @@ function main(): void {
         messageId: 0,
         message: {
           success: false,
-          error: {
-            type: 'unavailable',
-            message: 'Server is out of memory',
+          snapshot: {
+            terminated: true,
+            terminatedReason: 'unavailable',
           },
         },
       } as RemoteExecutionServerPayload));
@@ -76,7 +72,10 @@ function main(): void {
         messageId: isReply ? lastMessageId : undefined,
         message: {
           success: false,
-          error: message,
+          snapshot: {
+            terminated: true,
+            terminatedReason: message.type != 'end' ? message.type : undefined,
+          },
         },
       } as RemoteExecutionServerPayload));
       ws.close();
@@ -109,9 +108,13 @@ function main(): void {
 
     ws.on('message', (message: string) => {
       const msg = JSON.parse(message) as RemoteExecutionClientPayload;
+      logger.debug('[Server] received message', msg);
       lastMessageId = msg.messageId;
       if (msg.message.action == 'start') {
         void start(msg);
+      } else if (msg.message.action == 'run') {
+        // consider a run action is still a stepIn because this is a debugger, not a runner
+        void runner?.stepIn();
       } else if (msg.message.action == 'into') {
         void runner?.stepIn();
       } else if (msg.message.action == 'over') {

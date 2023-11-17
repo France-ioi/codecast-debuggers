@@ -5,9 +5,11 @@ import { logger } from './logger';
 export type StepsAcc = (StepSnapshot | TerminationMessage)[];
 
 export interface StepSnapshot {
-  stackFrames: StackFrame[],
+  stackFrames?: StackFrame[],
   stdout?: string[],
   stderr?: string[],
+  terminated?: boolean,
+  terminatedReason?: string,
 }
 
 export interface TerminationMessage {

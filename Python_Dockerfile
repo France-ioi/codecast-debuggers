@@ -1,9 +1,4 @@
-#FROM node:16.13.2 as node
 FROM python:3.10.2
-
-# install Node
-#COPY --from=node /usr/local/lib/node_modules /usr/local/lib/node_modules
-#COPY --from=node /usr/local/bin/node /usr/local/bin/node
 
 RUN python -V
 RUN pip -V
@@ -12,6 +7,4 @@ RUN pip install debugpy
 ENV ROOT=/usr/project
 WORKDIR ${ROOT}
 
-#ENTRYPOINT ["node", "./out/script.js"]
-#EXPOSE 3000
 CMD [""]

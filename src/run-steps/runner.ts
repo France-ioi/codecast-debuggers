@@ -390,10 +390,10 @@ async function setSnapshot({ context, filePaths, threadId }: SetSnapshotParams):
     logger.debug('setSnapshot');
     const snapshot = await getSnapshot({ context, filePaths, threadId });
 
-    if (snapshot.stackFrames.length > 0) {
+    if (snapshot.stackFrames && snapshot.stackFrames.length > 0) {
       context.onSnapshot(snapshot);
     } else {
-      await context.client.stepIn({ threadId: threadId, granularity: 'instruction' });
+      await context.client.stepOut({ threadId, granularity: 'instruction' });
     }
   } catch (error) {
     logger.debug('getSnapshot Failed', error);
