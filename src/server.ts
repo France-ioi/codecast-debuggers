@@ -28,6 +28,10 @@ export interface RemoteExecutionServerPayload {
   message: {
     success: boolean,
     snapshot?: StepSnapshot,
+    error?: {
+      type: string,
+      message?: string,
+    },
   },
 }
 
@@ -41,9 +45,9 @@ function main(): void {
         messageId: 0,
         message: {
           success: false,
-          snapshot: {
-            terminated: true,
-            terminatedReason: 'unavailable',
+          error: {
+            type: 'unavailable',
+            message: 'Server is out of memory',
           },
         },
       } as RemoteExecutionServerPayload));
@@ -71,7 +75,7 @@ function main(): void {
       ws.send(JSON.stringify({
         messageId: isReply ? lastMessageId : undefined,
         message: {
-          success: false,
+          success: true,
           snapshot: {
             terminated: true,
             terminatedReason: message.type != 'end' ? message.type : undefined,
