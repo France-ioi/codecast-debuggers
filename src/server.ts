@@ -78,7 +78,7 @@ function main(): void {
           success: true,
           snapshot: {
             terminated: true,
-            terminatedReason: message.type != 'end' ? message.type : undefined,
+            terminatedReason: message.type !== 'end' ? message.message : undefined,
           },
         },
       } as RemoteExecutionServerPayload));
