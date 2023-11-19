@@ -195,6 +195,8 @@ export const makeRunner = ({
       beforeInitialize: client => registerEvents(client, onEnd),
     });
 
+    let breakpointsEnabled = false;
+
     const subscriber = client.onStopped(stoppedEvent => {
       logger.debug('[Event] Stopped', stoppedEvent);
       if (stoppedEvent.reason == 'signal') {
@@ -223,6 +225,12 @@ export const makeRunner = ({
         options.onSnapshot(snapshot);
       }
 
+      // Remove all breakpoints now that the program stopped somewhere
+      // allows stepOver to work
+      if (options.breakpoints == '*' && breakpointsEnabled) {
+        void setBreakpoints({ client, programPath, breakpoints: '' });
+      }
+
       const snapshotParams = {
         filePaths: [ options.main, ...options.files ].map(file => path.resolve(process.cwd(), file.relativePath)),
         context: { client, canDigScope, canDigVariable, breakpoints: options.breakpoints, onSnapshot: onSnapshot },
@@ -230,12 +238,12 @@ export const makeRunner = ({
       };
 
       void setSnapshot(snapshotParams);
-
     });
     subscribers.push(subscriber);
 
     logger.debug(2, '[runner] setBreakpoints()');
     await setBreakpoints({ client, programPath, breakpoints: options.breakpoints });
+    breakpointsEnabled = true;
 
     logger.debug(3, '[runner] Configuration Done');
     // send 'configuration done' (in some debuggers this will trigger 'continue' if attach was awaited)
@@ -323,10 +331,10 @@ async function setBreakpoints({ client, programPath, breakpoints }: SetBreakpoin
   const programCode = await fs.promises.readFile(programPath, 'utf-8');
   const lines = programCode.split('\n').length;
 
-  let breakpointsDef;
+  let breakpointsDef: DebugProtocol.SourceBreakpoint[] = [];
   if (breakpoints == '*') {
     breakpointsDef = Array.from({ length: lines }, (_, i) => ({ line: i + 1 }));
-  } else {
+  } else if (breakpoints) {
     breakpointsDef = breakpoints.split(',').map(line => ({ line: parseInt(line) }));
   }
 

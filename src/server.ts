@@ -122,7 +122,7 @@ function main(): void {
       if (msg.message.action == 'start') {
         void start(msg);
       } else if (msg.message.action == 'run') {
-        // consider a run action is still a stepIn because this is a debugger, not a runner
+        // consider a run action is still a stepIn for now, until we support user-defined breakpoints
         void runner?.stepIn();
       } else if (msg.message.action == 'into') {
         void runner?.stepIn();
