@@ -4,7 +4,7 @@ import path from 'path';
 import { SocketDebugClient } from 'node-debugprotocol-client';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { logger } from '../logger';
-import { makeRunner, MakeRunnerConfig, Runner, RunnerOptions, Subprocess } from './runner';
+import { Cleanable, makeRunner, MakeRunnerConfig, Runner, RunnerOptions } from './runner';
 import { Stream } from 'stream';
 import { config } from '../config';
 
@@ -32,7 +32,7 @@ export const runStepsWithPythonDebugger = (options: RunnerOptions): Promise<Runn
   return runner({ ...options, main: { relativePath: runnerProgramPath } } as RunnerOptions);
 };
 
-const connect: MakeRunnerConfig['connect'] = async ({ uid, processes, programPath, logLevel, onOutput, beforeInitialize, inputStream }) => {
+const connect: MakeRunnerConfig['connect'] = async ({ uid, cleanables, programPath, logLevel, onOutput, beforeInitialize, inputStream }) => {
   const language = 'Python';
   const dap = {
     host: 'localhost',
@@ -43,9 +43,10 @@ const connect: MakeRunnerConfig['connect'] = async ({ uid, processes, programPat
   // This is to avoid a bug in debugpy where it doesn't stop on the last line
   const runnerProgramPath = path.join(config.sourcesPath, 'code-' + dap.port.toString() + '.py');
   fs.writeFileSync(runnerProgramPath, fs.readFileSync(programPath, 'utf-8') + '\npass\n');
+  cleanables.push({ path: runnerProgramPath });
 
   logger.debug(1, '[Python StepsRunner] start adapter server test');
-  await spawnDebugAdapterServer(dap, runnerProgramPath, processes, inputStream);
+  await spawnDebugAdapterServer(dap, runnerProgramPath, cleanables, inputStream);
 
   logger.debug(2, '[Python StepsRunner] instantiate SocketDebugClient');
   const client = new SocketDebugClient({
@@ -158,15 +159,16 @@ const connect: MakeRunnerConfig['connect'] = async ({ uid, processes, programPat
 async function spawnDebugAdapterServer(
   dap: { host: string, port: number },
   programPath: string,
-  processes: Subprocess[],
+  cleanables: Cleanable[],
   inputStream: Stream|null,
 ): Promise<void> {
   const debugPyFolderPath = '/usr/local/lib/python3.10/site-packages/debugpy';
 
   return new Promise<void>(resolve => {
-    // Create a file for debugpy to log to
-    const logDirPath = path.join('/tmp', 'debugpy-' + dap.port.toString());
+    // Create a folder for debugpy to log to
+    const logDirPath = path.join(config.sourcesPath, 'debugpy-' + dap.port.toString());
     fs.mkdirSync(logDirPath, { recursive: true });
+    cleanables.push({ path: logDirPath });
 
     const subprocessParams = [
       'docker',
@@ -201,6 +203,7 @@ async function spawnDebugAdapterServer(
         }
       }
     });
+    cleanables.push({ unsubscribe: () => watcher.close() });
 
     logger.log('Spawn python', subprocessParams);
     logger.log('cmdline', subprocessParams.join(' '));
@@ -208,7 +211,7 @@ async function spawnDebugAdapterServer(
     const subprocess = cp.spawn(subprocessParams[0] as string, subprocessParams.slice(1), {
       stdio: [ (inputStream) ? inputStream : 'ignore', 'pipe', 'pipe' ],
     });
-    processes.push(subprocess);
+    cleanables.push(subprocess);
 
     subprocess.on('error', error => logger.error('Server error:', error));
   });

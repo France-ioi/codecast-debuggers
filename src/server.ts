@@ -57,6 +57,7 @@ function main(): void {
     }
 
     let runner: Runner | null = null;
+    let sourcePath: string | null = null;
     let lastMessageId = 0;
 
     function onSnapshot(snapshot: StepSnapshot): void {
@@ -83,6 +84,9 @@ function main(): void {
         },
       } as RemoteExecutionServerPayload));
       ws.close();
+      if (sourcePath) {
+        void fs.unlink(sourcePath);
+      }
     }
 
     async function start(msg: RemoteExecutionClientPayload): Promise<void> {
@@ -99,7 +103,7 @@ function main(): void {
       const language = clientLanguage as Language;
       const inputStream = input ? Readable.from(input) : null;
       const inputPath = '';
-      const sourcePath = path.join(config.sourcesPath, (fileName.split('/').pop() || 'source') + extensionByLanguage[language]);
+      sourcePath = path.join(config.sourcesPath, (fileName.split('/').pop() || 'source') + extensionByLanguage[language]);
       await fs.writeFile(sourcePath, sourceCode);
 
       runner = await getRunner(language, {

@@ -5,7 +5,7 @@ import * as pty from 'node-pty';
 import { SocketDebugClient } from 'node-debugprotocol-client';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { logger } from '../logger';
-import { MakeRunnerConfig, makeRunner, RunnerOptions, Subprocess, Runner } from './runner';
+import { MakeRunnerConfig, makeRunner, RunnerOptions, Runner, Cleanable } from './runner';
 import tmp from 'tmp';
 
 type Language = 'c' | 'cpp';
@@ -38,7 +38,7 @@ const connect = (
   language: Language,
   config: Configuration,
   onExecutablePath: (thePath: string) => void,
-): MakeRunnerConfig['connect'] => async ({ uid, beforeInitialize, logLevel, onOutput, processes, programPath, inputPath }) => {
+): MakeRunnerConfig['connect'] => async ({ uid, beforeInitialize, logLevel, onOutput, cleanables, programPath, inputPath }) => {
   const connectLLDBTime = process.hrtime();
   const dap = {
     host: 'localhost',
@@ -49,7 +49,7 @@ const connect = (
   onExecutablePath(executablePath);
 
   logger.debug(1, '[LLDB StepsRunner] start adapter server');
-  await spawnAdapterServer(dap, processes, executablePath, uid);
+  await spawnAdapterServer(dap, cleanables, executablePath, uid);
 
   logger.debug(2, '[LLDB StepsRunner] instantiate SocketDebugClient');
   const client = new SocketDebugClient({
@@ -134,7 +134,7 @@ const connect = (
       });
       //subprocess.write(`${argv} ${args.join(' ')}\r`);
 
-      processes.push(subprocess);
+      cleanables.push(subprocess);
 
       logger.debug(7, '[LLDB StepsRunner] ran requested command in terminal');
       setTimeout(resolve, 1);
@@ -160,12 +160,13 @@ const connect = (
   return { client };
 };
 
-async function spawnAdapterServer(dap: { host: string, port: number }, processes: Subprocess[], executablePath: string, uid: number): Promise<void> {
+async function spawnAdapterServer(dap: { host: string, port: number }, cleanables: Cleanable[], executablePath: string, uid: number): Promise<void> {
   logger.debug('Start LLDB DAP Server on port', dap.port);
 
   const root = '/usr/project/vscode-lldb';
   const liblldb = path.join(root, './lldb/lib/liblldb.so');
 
+  // TODO :: compilation errors
   const args = [
     'docker',
     'run',
@@ -193,7 +194,7 @@ async function spawnAdapterServer(dap: { host: string, port: number }, processes
     const adapter = cp.spawn(args[0] as string, args.slice(1), {
       stdio: [ 'ignore', 'pipe', 'pipe' ],
     });
-    processes.push(adapter);
+    cleanables.push(adapter);
     const resolveOnMessage = (origin: string) => (data: Buffer) => {
       const message = data.toString('utf-8');
       logger.debug(`DAP server ready (${origin})`, message);

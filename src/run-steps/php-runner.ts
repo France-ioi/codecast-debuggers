@@ -3,13 +3,13 @@ import { SocketDebugClient } from 'node-debugprotocol-client';
 import path from 'path';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { logger } from '../logger';
-import { makeRunner, MakeRunnerConfig, Subprocess } from './runner';
+import { Cleanable, makeRunner, MakeRunnerConfig } from './runner';
 
 export const runStepsWithPHPDebugger = makeRunner({
   connect: params => connect(params),
 });
 
-const connect: MakeRunnerConfig['connect'] = async ({ logLevel, processes, programPath, beforeInitialize }) => {
+const connect: MakeRunnerConfig['connect'] = async ({ logLevel, cleanables, programPath, beforeInitialize }) => {
   const language = 'PHP';
   const dap = {
     host: 'localhost',
@@ -17,7 +17,7 @@ const connect: MakeRunnerConfig['connect'] = async ({ logLevel, processes, progr
   };
 
   logger.debug(1, '[PHP StepsRunner] start adapter server');
-  await spawnAdapterServer(dap, processes);
+  await spawnAdapterServer(dap, cleanables);
 
   logger.debug(2, '[PHP StepsRunner] instantiate SocketDebugClient');
   const client = new SocketDebugClient({
@@ -48,7 +48,7 @@ const connect: MakeRunnerConfig['connect'] = async ({ logLevel, processes, progr
   return { client };
 };
 
-async function spawnAdapterServer(dap: { host: string, port: number }, processes: Subprocess[]): Promise<void> {
+async function spawnAdapterServer(dap: { host: string, port: number }, cleanables: Cleanable[]): Promise<void> {
   logger.debug('Start PHP DAP Server on port', dap.port);
   const launcherFileDir = path.resolve(process.cwd(), './vscode-php-debug/out');
   const launcherFile = 'phpDebug.js';
@@ -62,7 +62,7 @@ async function spawnAdapterServer(dap: { host: string, port: number }, processes
       cwd: launcherFileDir,
       detached: true,
     });
-    processes.push(subprocess);
+    cleanables.push(subprocess);
 
     subprocess.on('message', () => {
       logger.debug('Message');

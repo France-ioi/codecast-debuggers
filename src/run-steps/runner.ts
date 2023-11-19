@@ -2,17 +2,23 @@ import fs from 'fs';
 import path from 'path';
 // import { getDiff, applyDiff } from 'recursive-diff';
 // import produce, { Patch, enablePatches } from 'immer';
-import { LogLevel, SocketDebugClient, Unsubscribable } from 'node-debugprotocol-client';
+import { LogLevel, SocketDebugClient } from 'node-debugprotocol-client';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { logger } from '../logger';
 import { Stream } from 'stream';
 import process from 'process';
 import { StepSnapshot, TerminationMessage, getSnapshot } from '../snapshot';
+import { config } from '../config';
 
 // enablePatches();
 
-export interface Subprocess {
-  kill: () => void,
+/**
+ * Type for elements which can be cleaned up when the runner is destroyed
+ */
+export interface Cleanable {
+  kill?: () => void,
+  unsubscribe?: () => void,
+  path?: string,
 }
 
 export interface MakeRunnerConfig {
@@ -28,14 +34,11 @@ export interface MakeRunnerConfig {
     uid: number,
 
     /**
-     * Runner implementations can push sub processes in that array, they will be killed when the runner is destroyed
+     * Runner implementations can push subprocesses, subscribers and temporary files in that array
+     * They will be cleaned up when the runner is destroyed
      */
-    processes: Subprocess[],
+    cleanables: Cleanable[],
 
-    /**
-     * Runner implementations can push subscribers, they will will be unsubscribed when the runner is destroyed
-     */
-    subscribers: Unsubscribable[],
     programPath: string,
     inputStream: Stream|null,
     inputPath: string,
@@ -140,8 +143,7 @@ export const makeRunner = ({
   };
 
   return async (options: RunnerOptions) => {
-    const processes: Subprocess[] = [];
-    const subscribers: Unsubscribable[] = [];
+    const cleanables: Cleanable[] = [];
     const programPath = path.resolve(process.cwd(), options.main.relativePath);
     let lastThreadId = 1;
 
@@ -179,14 +181,13 @@ export const makeRunner = ({
       } else {
         options.onTerminate({ type: 'end', message: 'Program ended' });
       }
-      await destroy('onEnd', { destroyed, client, processes, programPath, subscribers, afterDestroy });
+      await destroy('onEnd', { destroyed, client, cleanables, programPath, afterDestroy });
     }
 
     logger.debug(1, '[runner] connect()');
     const { client } = await connect({
       uid: options.uid,
-      processes,
-      subscribers,
+      cleanables,
       programPath,
       inputStream: options.inputStream,
       inputPath: options.inputPath,
@@ -239,7 +240,7 @@ export const makeRunner = ({
 
       void setSnapshot(snapshotParams);
     });
-    subscribers.push(subscriber);
+    cleanables.push(subscriber);
 
     logger.debug(2, '[runner] setBreakpoints()');
     await setBreakpoints({ client, programPath, breakpoints: options.breakpoints });
@@ -267,7 +268,7 @@ export const makeRunner = ({
       logger.debug(5, '[runner] destroy');
 
       try {
-        await destroy('runSteps', { destroyed, client, processes, programPath, subscribers, afterDestroy });
+        await destroy('runSteps', { destroyed, client, cleanables, programPath, afterDestroy });
       } catch {
       // silence is golden.
       }
@@ -292,23 +293,49 @@ type Output = DebugProtocol.OutputEvent['body'];
 interface DestroyParams {
   client: SocketDebugClient,
   destroyed: boolean,
-  processes: Subprocess[],
-  subscribers: Unsubscribable[],
+  cleanables: Cleanable[],
   programPath: string,
   afterDestroy: () => Promise<void>,
 }
 
-async function destroy(origin: string, { destroyed, subscribers, processes, client, afterDestroy }: DestroyParams): Promise<void> {
+async function destroy(origin: string, { destroyed, cleanables, client, afterDestroy }: DestroyParams): Promise<void> {
   if (destroyed) {
     return logger.debug('[StepsRunner] destroy already performed');
   }
 
   logger.debug('\n');
   logger.debug(`[StepsRunner] Destroy ⋅ ${origin}`);
-  subscribers.forEach(subscriber => subscriber.unsubscribe());
-  processes.forEach(subprocess => {
-    subprocess.kill();
-  });
+
+  function clean(cleanable: Cleanable): void {
+    if (cleanable.kill) {
+      cleanable.kill();
+    }
+    if (cleanable.unsubscribe) {
+      cleanable.unsubscribe();
+    }
+    if (cleanable.path) {
+      if (!fs.existsSync(cleanable.path)) {
+        return;
+      }
+      if (!cleanable.path.startsWith(config.sourcesPath)) {
+        // Safety check that it's in the sourcesPath
+        return;
+      }
+      if (fs.lstatSync(cleanable.path).isDirectory()) {
+        fs.rmdirSync(cleanable.path, { recursive: true });
+      } else {
+        fs.unlinkSync(cleanable.path);
+      }
+    }
+  }
+  // Clean subscribers
+  cleanables.filter(c => c.unsubscribe).forEach(clean);
+
+  // Clean subprocesses
+  cleanables.filter(c => !c.unsubscribe && c.kill).forEach(clean);
+
+  // Clean files
+  cleanables.filter(c => !c.unsubscribe && !c.kill).forEach(clean);
   client.disconnectAdapter();
   await client.disconnect({}).catch(() => { /* throws if already disconnected */ });
   await afterDestroy();
