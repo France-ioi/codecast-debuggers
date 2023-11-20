@@ -71,6 +71,11 @@ export interface MakeRunnerConfig {
   canDigVariable?: RunStepContext['canDigVariable'],
 
   /**
+   * LLDB seems to not stop if the breakpoints are removed
+   */
+  mustKeepBreakpoints?: boolean,
+
+  /**
    * For some languages, extra steps are required to clean up the env.
    * For instance, for compiled languages, the runner will remove compiled files.
    */
@@ -126,6 +131,7 @@ export const makeRunner = ({
   afterDestroy = (): Promise<void> => Promise.resolve(),
   canDigScope = (): boolean => true,
   canDigVariable = (): boolean => true,
+  mustKeepBreakpoints = false,
 }: MakeRunnerConfig): RunnerFactory => {
   const destroyed = false;
   const lastOutput = {
@@ -228,7 +234,7 @@ export const makeRunner = ({
 
       // Remove all breakpoints now that the program stopped somewhere
       // allows stepOver to work
-      if (options.breakpoints == '*' && breakpointsEnabled) {
+      if (!mustKeepBreakpoints && options.breakpoints == '*' && breakpointsEnabled) {
         void setBreakpoints({ client, programPath, breakpoints: '' });
       }
 
@@ -322,7 +328,7 @@ async function destroy(origin: string, { destroyed, cleanables, client, afterDes
         return;
       }
       if (fs.lstatSync(cleanable.path).isDirectory()) {
-        fs.rmdirSync(cleanable.path, { recursive: true });
+        fs.rmSync(cleanable.path, { recursive: true });
       } else {
         fs.unlinkSync(cleanable.path);
       }

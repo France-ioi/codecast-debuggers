@@ -23,6 +23,7 @@ export const runStepsWithLLDB = (language: Language, options: RunnerOptions): Pr
       return !forbiddenScopes.includes(scope.name);
     },
     canDigVariable: variable => !variable.name.startsWith('std::'),
+    mustKeepBreakpoints: true,
     afterDestroy: async () => {
       logger.debug('[LLDB StepsRunner] remove executable file');
       if (executablePath) {
