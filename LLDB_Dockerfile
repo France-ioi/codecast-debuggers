@@ -15,6 +15,7 @@ ENV ROOT=/usr/project
 WORKDIR ${ROOT}
 
 COPY vscode-lldb /usr/project/vscode-lldb
+COPY code_hooks /usr/project/vscode-lldb/code_hooks
 COPY lldb-startup.sh /usr/project/vscode-lldb/lldb-startup.sh
 
 CMD [""]
