@@ -173,6 +173,7 @@ async function spawnDebugAdapterServer(
     const subprocessParams = [
       'docker',
       'run',
+      '-i',
       '--rm',
       '-v',
       `${programPath}:${programPath}:ro`,
@@ -209,8 +210,11 @@ async function spawnDebugAdapterServer(
     logger.log('cmdline', subprocessParams.join(' '));
 
     const subprocess = cp.spawn(subprocessParams[0] as string, subprocessParams.slice(1), {
-      stdio: [ (inputStream) ? inputStream : 'ignore', 'pipe', 'pipe' ],
+      stdio: [ (inputStream) ? 'pipe' : 'ignore', 'pipe', 'pipe' ],
     });
+    if (inputStream && subprocess.stdin) {
+      inputStream.pipe(subprocess.stdin);
+    }
     cleanables.push(subprocess);
 
     subprocess.on('error', error => logger.error('Server error:', error));
