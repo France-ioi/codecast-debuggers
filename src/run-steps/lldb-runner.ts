@@ -1,4 +1,4 @@
-import cp, { SpawnSyncReturns } from 'child_process';
+import cp from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import * as pty from 'node-pty';
@@ -7,22 +7,23 @@ import { DebugProtocol } from 'vscode-debugprotocol';
 import { logger } from '../logger';
 import { MakeRunnerConfig, makeRunner, RunnerOptions, Runner, Cleanable } from './runner';
 import tmp from 'tmp';
+import { removeExt } from '../utils';
 
 type Language = 'c' | 'cpp';
 
 export const runStepsWithLLDB = (language: Language, options: RunnerOptions): Promise<Runner> => {
-  const config = configurations[language];
   let executablePath: string | null = null;
 
   const runner = makeRunner({
-    connect: connect(language, config, exe => executablePath = exe),
+    connect: connect(language, exe => executablePath = exe),
+    canDigStackFrame: stackFrame => !stackFrame.name.startsWith('::_'),
     canDigScope: scope => {
       // if (this.language === 'C++')
       const forbiddenScopes = [ 'Registers' ];
 
       return !forbiddenScopes.includes(scope.name);
     },
-    canDigVariable: variable => !variable.name.startsWith('std::'),
+    canDigVariable: variable => !variable.name.startsWith('std::') && !variable.name.startsWith('__gnu_cxx:'),
     mustKeepBreakpoints: true,
     afterDestroy: async () => {
       logger.debug('[LLDB StepsRunner] remove executable file');
@@ -37,20 +38,28 @@ export const runStepsWithLLDB = (language: Language, options: RunnerOptions): Pr
 
 const connect = (
   language: Language,
-  config: Configuration,
   onExecutablePath: (thePath: string) => void,
-): MakeRunnerConfig['connect'] => async ({ uid, beforeInitialize, logLevel, onOutput, cleanables, programPath, inputPath }) => {
+): MakeRunnerConfig['connect'] => async ({ uid, beforeInitialize, logLevel, onOutput, cleanables, programPath, inputStream, inputPath }) => {
   const connectLLDBTime = process.hrtime();
   const dap = {
     host: 'localhost',
     port: uid,
   };
 
-  const executablePath = config.compile(programPath).executablePath;
+  const executablePath = removeExt(programPath);
   onExecutablePath(executablePath);
 
+  if (inputStream && !inputPath) {
+    inputPath = tmp.fileSync({ postfix: '.txt' }).name;
+    logger.debug('Creating temporary file for input stream', inputPath);
+    cleanables.push({ path: inputPath });
+    await new Promise(resolve => {
+      inputStream.pipe(fs.createWriteStream(inputPath)).on('finish', resolve);
+    });
+  }
+
   logger.debug(1, '[LLDB StepsRunner] start adapter server');
-  await spawnAdapterServer(dap, cleanables, executablePath, uid);
+  await spawnAdapterServer(dap, language, cleanables, programPath, executablePath, uid, inputPath);
 
   logger.debug(2, '[LLDB StepsRunner] instantiate SocketDebugClient');
   const client = new SocketDebugClient({
@@ -150,7 +159,7 @@ const connect = (
   const launched = client.launch({
     program: executablePath,
     stdio: [ inputPath, null, null ],
-    ...config.launchArgs,
+    initCommands: [ 'settings set target.disable-aslr false' ],
   } as DebugProtocol.LaunchRequestArguments);
 
   await Promise.race([ launched, spawnedTerminalRequest ]);
@@ -161,7 +170,7 @@ const connect = (
   return { client };
 };
 
-async function spawnAdapterServer(dap: { host: string, port: number }, cleanables: Cleanable[], executablePath: string, uid: number): Promise<void> {
+async function spawnAdapterServer(dap: { host: string, port: number }, language: Language, cleanables: Cleanable[], sourcePath: string, executablePath: string, uid: number, inputPath: string): Promise<void> {
   logger.debug('Start LLDB DAP Server on port', dap.port);
 
   const root = '/usr/project/vscode-lldb';
@@ -177,12 +186,14 @@ async function spawnAdapterServer(dap: { host: string, port: number }, cleanable
     //    '-v',
     //`${executablePath}:${executablePath}:ro`,
     '-v',
-    `${executablePath}.cpp:${executablePath}.cpp:ro`,
+    `${sourcePath}:${sourcePath}:ro`,
+    ...(inputPath ? [ '-v', `${inputPath}:${inputPath}:ro` ] : []),
     '-p',
     `${dap.port.toString()}:4000`,
     'lldb-debugger',
-    '/usr/project/vscode-lldb/lldb-startup.sh',
-    `${executablePath}`,
+    `/usr/project/vscode-lldb/lldb-startup-${language}.sh`,
+    sourcePath,
+    executablePath,
     path.join(root, 'adapter/codelldb'),
     '--liblldb',
     liblldb,
@@ -213,95 +224,3 @@ async function spawnAdapterServer(dap: { host: string, port: number }, cleanable
     }
   });
 }
-
-interface Configuration {
-  compile: (mainFilePath: string) => { executablePath: string },
-  launchArgs?: DebugProtocol.LaunchRequestArguments,
-}
-
-/**
- * Executes the compile command.
- *
- * @param command The command.
- *
- * @throws An exception in case the compilation fails.
- */
-function execCompileCommand(command: string): void {
-  let compileOutput;
-
-  try {
-    logger.debug('Compile command: ' + command);
-    compileOutput = cp.execSync(command);
-  } catch (e) {
-    const error = (e as SpawnSyncReturns<Buffer>).stderr.toString();
-
-    throw {
-      error,
-    };
-  }
-  logger.debug('-> ' + compileOutput.toString('utf8'));
-}
-
-// /* eslint-disable @typescript-eslint/naming-convention */
-const configurations: Record<Language, Configuration> = {
-  c: {
-    compile: mainFilePath => {
-      const executablePath = removeExt(mainFilePath);
-
-      /**
-       * We put a concatenation of code_hooks/initialization.c and the file to compile, into a file in /tmp
-       * The hook code contains what is required to disable output buffering.
-       *
-       * Problem: It doesn't work.
-       * If we execute the executable manually, we get the right output.
-       * (ie. cp.execSync(executablePath).toString('ascii') bellow).
-       *
-       * But when we try to debug, we receive [on exit] { exitCode: 0, signal: 1 }
-       * which might indicate a segfault, or something like that.
-       *
-       * It is possible that the method used in the hook to have an initialization function crashes when used with the debugger.
-       * This requires further investigation.
-       */
-
-      const tmpFile = tmp.fileSync({
-        postfix: 'src.c',
-      });
-      fs.writeSync(tmpFile.fd, fs.readFileSync('code_hooks/initialization.c'));
-      fs.writeSync(tmpFile.fd, fs.readFileSync(mainFilePath));
-
-      // Test: check the content of the file we're going to compile
-      // const data = fs.readFileSync(tmpFile.name, 'utf-8');
-      // console.log(data);
-
-      // Compile the file containing the hook in /tmp :
-      const compileCommand = `gcc -g ${tmpFile.name} -o ${executablePath} -ldl`;
-
-      // Compile the source code without hooks
-      //const compileCommand = `gcc -g ${mainFilePath} -o ${executablePath} -ldl`;
-
-      execCompileCommand(compileCommand);
-
-      // Test: execute the program manually and output the result in console.
-      // TODO: Remove after fixing the issue.
-      logger.debug(cp.execSync(executablePath).toString('ascii'));
-
-      return { executablePath };
-    },
-    launchArgs: {
-      initCommands: [ 'settings set target.disable-aslr false' ],
-    } as DebugProtocol.LaunchRequestArguments,
-  },
-  cpp: {
-    compile: mainFilePath => {
-      const executablePath = removeExt(mainFilePath);
-      const compileCommand = `g++ -g "${mainFilePath}" -o "${executablePath}" -ldl`;
-      execCompileCommand(compileCommand);
-
-      return { executablePath };
-    },
-    launchArgs: {
-      initCommands: [ 'settings set target.disable-aslr false' ],
-    } as DebugProtocol.LaunchRequestArguments,
-  },
-};
-const removeExt = (filePath: string): string => filePath.slice(0, -path.extname(filePath).length);

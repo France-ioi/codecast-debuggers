@@ -59,6 +59,11 @@ export interface MakeRunnerConfig {
   }>,
 
   /**
+   * Predicates to determine whether to keep a stack frame in the list and retrieve its details.
+   */
+  canDigStackFrame?: RunStepContext['canDigStackFrame'],
+
+  /**
    * Predicates to determine whether to keep a variable in the list and retrieve its details.
    * This predicate is injected to allow customization per language.
    */
@@ -106,8 +111,9 @@ export interface RunnerOptions {
  */
 export interface RunStepContext {
   client: SocketDebugClient,
-  canDigVariable: (variable: DebugProtocol.Variable) => boolean,
+  canDigStackFrame: (stackFrame: DebugProtocol.StackFrame) => boolean,
   canDigScope: (scope: DebugProtocol.Scope) => boolean,
+  canDigVariable: (variable: DebugProtocol.Variable) => boolean,
   breakpoints: string,
   onSnapshot: RunnerOptions['onSnapshot'],
 }
@@ -129,6 +135,7 @@ export type RunnerFactory = (options: RunnerOptions) => Promise<Runner>;
 export const makeRunner = ({
   connect,
   afterDestroy = (): Promise<void> => Promise.resolve(),
+  canDigStackFrame = (): boolean => true,
   canDigScope = (): boolean => true,
   canDigVariable = (): boolean => true,
   mustKeepBreakpoints = false,
@@ -240,11 +247,11 @@ export const makeRunner = ({
 
       const snapshotParams = {
         filePaths: [ options.main, ...options.files ].map(file => path.resolve(process.cwd(), file.relativePath)),
-        context: { client, canDigScope, canDigVariable, breakpoints: options.breakpoints, onSnapshot: onSnapshot },
+        context: { client, canDigStackFrame, canDigScope, canDigVariable, breakpoints: options.breakpoints, onSnapshot: onSnapshot },
         threadId: stoppedEvent.threadId,
       };
 
-      void setSnapshot(snapshotParams);
+      void getAndProcessSnapshot(snapshotParams);
     });
     cleanables.push(subscriber);
 
@@ -420,7 +427,7 @@ const registerEvents = (client: SocketDebugClient, onTerminated: (exitCode?: num
   });
 };
 
-interface SetSnapshotParams {
+interface GetAndProcessSnapshotParams {
 
   /**
    * absolute paths
@@ -430,9 +437,9 @@ interface SetSnapshotParams {
   threadId: number,
 }
 
-async function setSnapshot({ context, filePaths, threadId }: SetSnapshotParams): Promise<void> {
+async function getAndProcessSnapshot({ context, filePaths, threadId }: GetAndProcessSnapshotParams): Promise<void> {
   try {
-    logger.debug('setSnapshot');
+    logger.debug('getAndProcessSnapshot');
     const snapshot = await getSnapshot({ context, filePaths, threadId });
 
     if (snapshot.stackFrames && snapshot.stackFrames.length > 0) {

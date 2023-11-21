@@ -16,6 +16,6 @@ WORKDIR ${ROOT}
 
 COPY vscode-lldb /usr/project/vscode-lldb
 COPY code_hooks /usr/project/vscode-lldb/code_hooks
-COPY lldb-startup.sh /usr/project/vscode-lldb/lldb-startup.sh
+COPY lldb-startup-c.sh lldb-startup-cpp.sh /usr/project/vscode-lldb/
 
 CMD [""]

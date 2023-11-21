@@ -1,3 +1,4 @@
+import path from 'path';
 import { config } from './config';
 
 const usedDockerPorts: { [port: number]: boolean } = {};
@@ -17,4 +18,8 @@ export function getUid(): number {
 
 export function freeUid(port: number): void {
   delete usedDockerPorts[port];
+}
+
+export function removeExt (filePath: string): string {
+  return filePath.slice(0, -path.extname(filePath).length);
 }

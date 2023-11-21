@@ -60,7 +60,7 @@ export async function getSnapshot({ context, filePaths, threadId }: GetSnapshotP
   const result = await context.client.stackTrace({ threadId });
   const stackFrames = await Promise.all(
     result.stackFrames
-      .filter(isStackFrameOfSourceFile(filePaths))
+      .filter(isKeepableStackFrame(context.canDigStackFrame, filePaths))
       .map(stackFrame => getStackFrame({ context, stackFrame }))
   );
 
@@ -204,7 +204,7 @@ async function getVariable(
   }
 }
 
-function isStackFrameOfSourceFile(fileAbsolutePaths: string[]) {
+function isKeepableStackFrame(canDigStackFrame: (stackFrame: DebugProtocol.StackFrame) => boolean, fileAbsolutePaths: string[]) {
   return (stackFrame: DebugProtocol.StackFrame): boolean =>
-    !!stackFrame.source && fileAbsolutePaths.some(filePath => filePath === stackFrame.source?.path);
+    canDigStackFrame(stackFrame) && !!stackFrame.source && fileAbsolutePaths.some(filePath => filePath === stackFrame.source?.path);
 }
