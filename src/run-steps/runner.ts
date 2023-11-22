@@ -121,6 +121,7 @@ export interface RunStepContext {
 }
 
 export interface Runner {
+  setSpeed: (speed?: number) => void,
   stepIn: () => Promise<void>,
   stepOut: () => Promise<void>,
   stepOver: () => Promise<void>,
@@ -161,6 +162,7 @@ export const makeRunner = ({
     const cleanables: Cleanable[] = [];
     const programPath = path.resolve(process.cwd(), options.main.relativePath);
     let lastThreadId = 1;
+    let speed = 1, stepsDone = 0;
 
     /**
      * Overview:
@@ -223,6 +225,7 @@ export const makeRunner = ({
 
         // TODO :: What should we return?
         return {
+          setSpeed,
           stepIn,
           stepOut,
           stepOver,
@@ -261,7 +264,13 @@ export const makeRunner = ({
         lastOutput.stderr = [];
         logger.debug('onSnapshot');
         logger.dir(snapshot, { colors: true, depth: 10 });
-        options.onSnapshot(snapshot);
+        stepsDone += 1;
+        if (stepsDone >= speed) {
+          stepsDone = 0;
+          options.onSnapshot(snapshot);
+        } else {
+          void client.stepIn({ threadId: lastThreadId, granularity: 'instruction' });
+        }
       }
 
       // Remove all breakpoints now that the program stopped somewhere
@@ -274,6 +283,7 @@ export const makeRunner = ({
         filePaths: [ options.main, ...options.files ].map(file => path.resolve(process.cwd(), file.relativePath)),
         context: { client, canDigStackFrame, canDigScope, canDigVariable, breakpoints: options.breakpoints, onSnapshot: onSnapshot },
         threadId: stoppedEvent.threadId,
+        fullSnapshot: stepsDone + 1 >= speed,
       };
 
       void getAndProcessSnapshot(snapshotParams);
@@ -289,6 +299,10 @@ export const makeRunner = ({
     await client.configurationDone({});
 
     logger.debug(4, '[runner] Runner ready');
+
+    function setSpeed(newSpeed?: number): void {
+      speed = Math.max(1, Math.floor(newSpeed || 1));
+    }
 
     async function stepIn(): Promise<void> {
       await client.stepIn({ threadId: lastThreadId, granularity: 'instruction' });
@@ -317,6 +331,7 @@ export const makeRunner = ({
     lastOutput.stderr = [];
 
     return {
+      setSpeed,
       stepIn,
       stepOut,
       stepOver,
@@ -462,12 +477,13 @@ interface GetAndProcessSnapshotParams {
   filePaths: string[], // absolute paths
   context: RunStepContext,
   threadId: number,
+  fullSnapshot: boolean,
 }
 
-async function getAndProcessSnapshot({ context, filePaths, threadId }: GetAndProcessSnapshotParams): Promise<void> {
+async function getAndProcessSnapshot({ context, filePaths, threadId, fullSnapshot }: GetAndProcessSnapshotParams): Promise<void> {
   try {
     logger.debug('getAndProcessSnapshot');
-    const snapshot = await getSnapshot({ context, filePaths, threadId });
+    const snapshot = await getSnapshot({ context, filePaths, threadId, fullSnapshot });
 
     if (snapshot.stackFrames && snapshot.stackFrames.length > 0) {
       context.onSnapshot(snapshot);

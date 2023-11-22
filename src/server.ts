@@ -20,6 +20,7 @@ export interface RemoteExecutionClientPayload {
       sourceCode: string,
       input: string,
     },
+    speed?: number,
   },
 }
 
@@ -101,7 +102,7 @@ function main(): void {
         clientLanguage = 'cpp';
       }
       const language = clientLanguage as Language;
-      const inputStream = input ? Readable.from(input) : null;
+      const inputStream = input ? Readable.from(input) : Readable.from('1 2');
       const inputPath = '';
       sourcePath = path.join(config.sourcesPath, (fileName.split('/').pop() || 'source') + extensionByLanguage[language]);
       await fs.writeFile(sourcePath, sourceCode);
@@ -123,20 +124,25 @@ function main(): void {
       const msg = JSON.parse(message) as RemoteExecutionClientPayload;
       logger.debug('[Server] received message', msg);
       lastMessageId = msg.messageId;
+
       if (msg.message.action == 'start') {
         void start(msg);
-      } else if (msg.message.action == 'run') {
-        // consider a run action is still a stepIn for now, until we support user-defined breakpoints
-        void runner?.stepIn();
-      } else if (msg.message.action == 'into') {
-        void runner?.stepIn();
-      } else if (msg.message.action == 'over') {
-        void runner?.stepOver();
-      } else if (msg.message.action == 'out') {
-        void runner?.stepOut();
       } else if (msg.message.action == 'close') {
         void runner?.terminate();
         onTerminate({ type: 'close', message: 'Client is closing the connection' });
+      } else {
+        // Update speed
+        runner?.setSpeed(msg.message.speed);
+        if (msg.message.action == 'run') {
+        // consider a run action is still a stepIn for now, until we support user-defined breakpoints
+          void runner?.stepIn();
+        } else if (msg.message.action == 'into') {
+          void runner?.stepIn();
+        } else if (msg.message.action == 'over') {
+          void runner?.stepOver();
+        } else if (msg.message.action == 'out') {
+          void runner?.stepOut();
+        }
       }
     });
   });

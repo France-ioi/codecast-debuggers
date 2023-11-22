@@ -53,18 +53,24 @@ interface GetSnapshotParams {
      * the threadId from which we can extract debug data. Provided in the `onStopped` event
      */
     threadId: number,
+
+    /**
+     * if false, only the stack frames will be retrieved (to handle partial steps))
+     */
+    fullSnapshot: boolean,
 }
 
 
-export async function getSnapshot({ context, filePaths, threadId }: GetSnapshotParams): Promise<StepSnapshot> {
+export async function getSnapshot({ context, filePaths, threadId, fullSnapshot }: GetSnapshotParams): Promise<StepSnapshot> {
   const result = await context.client.stackTrace({ threadId });
-  const stackFrames = await Promise.all(
-    result.stackFrames
-      .filter(isKeepableStackFrame(context.canDigStackFrame, filePaths))
-      .map(stackFrame => getStackFrame({ context, stackFrame }))
-  );
-
-  return { stackFrames };
+  const keepableStackFrames = result.stackFrames.filter(isKeepableStackFrame(context.canDigStackFrame, filePaths));
+  if (fullSnapshot) {
+    return { stackFrames: await Promise.all(
+      keepableStackFrames.map(stackFrame => getStackFrame({ context, stackFrame }))
+    ) };
+  } else {
+    return { stackFrames: keepableStackFrames.map(stackFrame => ({ ...stackFrame, scopes: [] })) };
+  }
 }
 
 interface GetStackFrameParams {
@@ -73,6 +79,9 @@ interface GetStackFrameParams {
 }
 
 async function getStackFrame({ context, stackFrame }: GetStackFrameParams): Promise<StackFrame> {
+  /*if (!isKeepableStackFrame(context.canDigStackFrame, filePaths)(stackFrame)) {
+    return { ...stackFrame, scopes: [] };
+  }*/
   const result = await context.client.scopes({ frameId: stackFrame.id });
   const scopes = await Promise.all(result.scopes.map(scope => getScope({ context, scope })));
 
