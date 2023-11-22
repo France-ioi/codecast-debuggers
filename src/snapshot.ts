@@ -185,7 +185,7 @@ async function getVariable(
 
     const variables = result.variables.filter(context.canDigVariable).map(curVariable => {
       const curVariableIndex = getVariableIndex(curVariable);
-      if (curVariableIndex) {
+      if (curVariableIndex && !(curVariableIndex in variableDetails)) {
         variableDetails[curVariableIndex] = {
           ...curVariable,
           variables: [],
