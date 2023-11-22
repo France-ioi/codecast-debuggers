@@ -258,15 +258,15 @@ export const makeRunner = ({
       }
 
       function onSnapshot(snapshot: StepSnapshot): void {
-        snapshot.stdout = lastOutput.stdout;
-        snapshot.stderr = lastOutput.stderr;
-        lastOutput.stdout = [];
-        lastOutput.stderr = [];
-        logger.debug('onSnapshot');
-        logger.dir(snapshot, { colors: true, depth: 10 });
         stepsDone += 1;
         if (stepsDone >= speed) {
           stepsDone = 0;
+          snapshot.stdout = lastOutput.stdout;
+          snapshot.stderr = lastOutput.stderr;
+          lastOutput.stdout = [];
+          lastOutput.stderr = [];
+          logger.debug('onSnapshot');
+          logger.dir(snapshot, { colors: true, depth: 10 });
           options.onSnapshot(snapshot);
         } else {
           void client.stepIn({ threadId: lastThreadId, granularity: 'instruction' });
