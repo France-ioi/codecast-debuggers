@@ -78,11 +78,6 @@ export interface MakeRunnerConfig {
   canDigVariable?: RunStepContext['canDigVariable'],
 
   /**
-   * LLDB seems to not stop if the breakpoints are removed
-   */
-  mustKeepBreakpoints?: boolean,
-
-  /**
    * For some languages, extra steps are required to clean up the env.
    * For instance, for compiled languages, the runner will remove compiled files.
    */
@@ -141,7 +136,6 @@ export const makeRunner = ({
   canDigStackFrame = (): boolean => true,
   canDigScope = (): boolean => true,
   canDigVariable = (): boolean => true,
-  mustKeepBreakpoints = false,
 }: MakeRunnerConfig): RunnerFactory => {
   const destroyed = false;
   const lastOutput = {
@@ -258,6 +252,12 @@ export const makeRunner = ({
       }
 
       function onSnapshot(snapshot: StepSnapshot): void {
+        // Remove all breakpoints now that the program stopped somewhere
+        // allows stepOver to work
+        if (options.breakpoints == '*' && breakpointsEnabled) {
+          void setBreakpoints({ client, programPath, breakpoints: '' });
+        }
+
         stepsDone += 1;
         if (stepsDone >= speed) {
           stepsDone = 0;
@@ -271,12 +271,6 @@ export const makeRunner = ({
         } else {
           void client.stepIn({ threadId: lastThreadId, granularity: 'instruction' });
         }
-      }
-
-      // Remove all breakpoints now that the program stopped somewhere
-      // allows stepOver to work
-      if (!mustKeepBreakpoints && options.breakpoints == '*' && breakpointsEnabled) {
-        void setBreakpoints({ client, programPath, breakpoints: '' });
       }
 
       const snapshotParams = {

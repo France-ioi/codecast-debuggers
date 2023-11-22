@@ -22,7 +22,6 @@ export const runStepsWithLLDB = (language: Language, options: RunnerOptions): Pr
       return !forbiddenScopes.includes(scope.name);
     },
     canDigVariable: variable => !variable.name.startsWith('std::') && !variable.name.startsWith('__gnu_cxx:'),
-    mustKeepBreakpoints: true,
   });
 
   return runner(options);
