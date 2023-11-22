@@ -1,4 +1,4 @@
-import fs from 'fs/promises';
+import fs from 'fs';
 import { logger } from './logger';
 import { Language, extensionByLanguage, getRunner } from './run-steps/factory';
 import { Runner } from './run-steps/runner';
@@ -85,8 +85,8 @@ function main(): void {
         },
       } as RemoteExecutionServerPayload));
       ws.close();
-      if (sourcePath) {
-        void fs.unlink(sourcePath);
+      if (sourcePath && fs.existsSync(sourcePath)) {
+        void fs.unlinkSync(sourcePath);
       }
     }
 
@@ -105,7 +105,7 @@ function main(): void {
       const inputStream = input ? Readable.from(input) : Readable.from('1 2');
       const inputPath = '';
       sourcePath = path.join(config.sourcesPath, (fileName.split('/').pop() || 'source') + extensionByLanguage[language]);
-      await fs.writeFile(sourcePath, sourceCode);
+      fs.writeFileSync(sourcePath, sourceCode);
 
       runner = await getRunner(language, {
         uid: getUid(),
