@@ -5,17 +5,15 @@ import * as pty from 'node-pty';
 import { SocketDebugClient } from 'node-debugprotocol-client';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { logger } from '../logger';
-import { MakeRunnerConfig, makeRunner, RunnerOptions, Runner, Cleanable } from './runner';
+import { MakeRunnerConfig, makeRunner, RunnerOptions, Runner, Cleanable, CompilationError } from './runner';
 import tmp from 'tmp';
 import { removeExt } from '../utils';
 
 type Language = 'c' | 'cpp';
 
 export const runStepsWithLLDB = (language: Language, options: RunnerOptions): Promise<Runner> => {
-  let executablePath: string | null = null;
-
   const runner = makeRunner({
-    connect: connect(language, exe => executablePath = exe),
+    connect: connect(language),
     canDigStackFrame: stackFrame => !stackFrame.name.startsWith('::_'),
     canDigScope: scope => {
       // if (this.language === 'C++')
@@ -25,21 +23,12 @@ export const runStepsWithLLDB = (language: Language, options: RunnerOptions): Pr
     },
     canDigVariable: variable => !variable.name.startsWith('std::') && !variable.name.startsWith('__gnu_cxx:'),
     mustKeepBreakpoints: true,
-    afterDestroy: async () => {
-      logger.debug('[LLDB StepsRunner] remove executable file');
-      if (executablePath) {
-        await fs.promises.unlink(executablePath).catch(() => { /* throws if already deleted */ });
-      }
-    },
   });
 
   return runner(options);
 };
 
-const connect = (
-  language: Language,
-  onExecutablePath: (thePath: string) => void,
-): MakeRunnerConfig['connect'] => async ({ uid, beforeInitialize, logLevel, onOutput, cleanables, programPath, inputStream, inputPath }) => {
+const connect = (language: Language): MakeRunnerConfig['connect'] => async ({ uid, beforeInitialize, logLevel, onOutput, cleanables, programPath, inputStream, inputPath }) => {
   const connectLLDBTime = process.hrtime();
   const dap = {
     host: 'localhost',
@@ -47,7 +36,6 @@ const connect = (
   };
 
   const executablePath = removeExt(programPath);
-  onExecutablePath(executablePath);
 
   if (inputStream && !inputPath) {
     inputPath = tmp.fileSync({ postfix: '.txt' }).name;
@@ -201,26 +189,30 @@ async function spawnAdapterServer(dap: { host: string, port: number }, language:
     '4001',
   ];
 
-  await new Promise<void>(resolve => {
+  await new Promise<void>((resolve, reject) => {
     logger.debug('Spawn process ', args);
     const adapter = cp.spawn(args[0] as string, args.slice(1), {
       stdio: [ 'ignore', 'pipe', 'pipe' ],
     });
     cleanables.push(adapter);
+    let stderr = '';
     const resolveOnMessage = (origin: string) => (data: Buffer) => {
       const message = data.toString('utf-8');
-      logger.debug(`DAP server ready (${origin})`, message);
+      logger.debug(`[DAP server ${origin}]`, message);
+      if (origin == 'stderr') {
+        stderr += message;
+        if (stderr.includes('___COMPILATION_ERROR___')) {
+          logger.error('Compilation error');
+
+          reject(new CompilationError(stderr.replace('___COMPILATION_ERROR___', '')));
+        }
+      }
       if (message.startsWith('Listening on port')) {
+        logger.debug(`DAP server ready (${origin})`, message);
         resolve();
       }
     };
-    adapter.stdout.once('data', resolveOnMessage('stdout'));
-    adapter.stderr.once('data', resolveOnMessage('stderr'));
-    if (logger.level === 'debug') {
-      adapter.stdout.on('data', (data: Buffer) => process.stdout.write(data));
-    }
-    if (logger.level === 'debug') {
-      adapter.stderr.on('data', (data: Buffer) => process.stderr.write(data));
-    }
+    adapter.stdout.on('data', resolveOnMessage('stdout'));
+    adapter.stderr.on('data', resolveOnMessage('stderr'));
   });
 }

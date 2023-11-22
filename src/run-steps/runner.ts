@@ -21,6 +21,8 @@ export interface Cleanable {
   path?: string,
 }
 
+export class CompilationError extends Error {}
+
 export interface MakeRunnerConfig {
 
   /**
@@ -198,16 +200,39 @@ export const makeRunner = ({
     }
 
     logger.debug(1, '[runner] connect()');
-    const { client } = await connect({
-      uid: options.uid,
-      cleanables,
-      programPath,
-      inputStream: options.inputStream,
-      inputPath: options.inputPath,
-      logLevel: LogLevel[options.logLevel ?? 'Off'],
-      onOutput,
-      beforeInitialize: client => registerEvents(client, onEnd),
-    });
+
+    // Using an intermediate variable to avoid typing issues
+    let connectResult;
+
+    try {
+      connectResult = await connect({
+        uid: options.uid,
+        cleanables,
+        programPath,
+        inputStream: options.inputStream,
+        inputPath: options.inputPath,
+        logLevel: LogLevel[options.logLevel ?? 'Off'],
+        onOutput,
+        beforeInitialize: client => registerEvents(client, onEnd),
+      });
+    } catch (error) {
+      if (error instanceof CompilationError) {
+        options.onTerminate({ type: 'terminated', message: error.message });
+
+        await destroy('runSteps', { destroyed, client: null, cleanables, programPath, afterDestroy });
+
+        // TODO :: What should we return?
+        return {
+          stepIn,
+          stepOut,
+          stepOver,
+          terminate,
+        };
+      } else {
+        throw error;
+      }
+    }
+    const { client } = connectResult;
 
     let breakpointsEnabled = false;
 
@@ -304,7 +329,7 @@ export const makeRunner = ({
 type Output = DebugProtocol.OutputEvent['body'];
 
 interface DestroyParams {
-  client: SocketDebugClient,
+  client: SocketDebugClient|null,
   destroyed: boolean,
   cleanables: Cleanable[],
   programPath: string,
@@ -349,8 +374,10 @@ async function destroy(origin: string, { destroyed, cleanables, client, afterDes
 
   // Clean files
   cleanables.filter(c => !c.unsubscribe && !c.kill).forEach(clean);
-  client.disconnectAdapter();
-  await client.disconnect({}).catch(() => { /* throws if already disconnected */ });
+  if (client) {
+    client.disconnectAdapter();
+    await client.disconnect({}).catch(() => { /* throws if already disconnected */ });
+  }
   await afterDestroy();
   destroyed = true;
 }
