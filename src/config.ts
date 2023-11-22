@@ -18,7 +18,7 @@ export const config: Config = {
   dockerPortRange: [ 15000, 20000 ],
   limitTime: 600.0,
   server: {
-    port: 8080,
+    port: 9997,
     inactivityTimeout: 5 * 60000,
     freeMemoryLimit: 100 * 1024 * 1024,
   },
