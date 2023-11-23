@@ -57,6 +57,7 @@ function main(): void {
       return;
     }
 
+    const uid = getUid();
     let runner: Runner | null = null;
     let sourcePath: string | null = null;
     let lastMessageId = 0;
@@ -96,7 +97,7 @@ function main(): void {
 
         return;
       }
-      const { fileName, sourceCode, input } = msg.message.answer;
+      const { sourceCode, input } = msg.message.answer;
       let clientLanguage = msg.message.answer.language;
       if (clientLanguage == 'unix') {
         clientLanguage = 'cpp';
@@ -104,11 +105,11 @@ function main(): void {
       const language = clientLanguage as Language;
       const inputStream = input ? Readable.from(input) : Readable.from('1 2');
       const inputPath = '';
-      sourcePath = path.join(config.sourcesPath, (fileName.split('/').pop() || 'source') + extensionByLanguage[language]);
+      sourcePath = path.join(config.sourcesPath, 'source' + uid.toString() + extensionByLanguage[language]);
       fs.writeFileSync(sourcePath, sourceCode);
 
       runner = await getRunner(language, {
-        uid: getUid(),
+        uid,
         logLevel: logger.level === 'debug' ? 'On' : 'Off',
         main: { relativePath: sourcePath },
         inputStream,
