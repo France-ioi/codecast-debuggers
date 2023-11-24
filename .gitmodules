@@ -1,0 +1,3 @@
+[submodule "java-debug"]
+	path = java-debug
+	url = https://github.com/mblockelet/java-debug
