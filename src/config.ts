@@ -9,6 +9,12 @@ export interface Config {
     port: number,
     inactivityTimeout: number,
     freeMemoryLimit?: number,
+
+    /**
+     * Whether the server cleans leftover resources on startup
+     * false by default as this can interfere with manual debugger runs
+     */
+    cleanLeftoverOnStartup?: boolean,
   },
 }
 
@@ -21,5 +27,6 @@ export const config: Config = {
     port: 9997,
     inactivityTimeout: 5 * 60000,
     freeMemoryLimit: 100 * 1024 * 1024,
+    cleanLeftoverOnStartup: false,
   },
 };
