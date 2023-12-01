@@ -292,14 +292,13 @@ export const makeRunner = ({
     // send 'configuration done' (in some debuggers this will trigger 'continue' if attach was awaited)
     await client.configurationDone({});
 
-    logger.debug(4, '[runner] Runner ready');
-
     function setSpeed(newSpeed?: number): void {
       speed = Math.max(1, Math.floor(newSpeed || 1));
     }
 
     async function stepIn(): Promise<void> {
-      await client.stepIn({ threadId: lastThreadId, granularity: 'instruction' });
+      logger.debug('lastThreadId', lastThreadId);
+      await client.stepIn({ threadId: 1, granularity: 'instruction' });
     }
 
     async function stepOut(): Promise<void> {
@@ -307,7 +306,8 @@ export const makeRunner = ({
     }
 
     async function stepOver(): Promise<void> {
-      await client.next({ threadId: lastThreadId, granularity: 'instruction' });
+      logger.debug('lastThreadId', lastThreadId);
+      await client.next({ threadId: 1, granularity: 'instruction' });
     }
 
     async function terminate(): Promise<void> {
@@ -409,13 +409,13 @@ async function setBreakpoints({ client, programPath, breakpoints }: SetBreakpoin
 
   let breakpointsDef: DebugProtocol.SourceBreakpoint[] = [];
   if (breakpoints == '*') {
-    breakpointsDef = Array.from({ length: lines }, (_, i) => ({ line: i + 1 }));
+    breakpointsDef = Array.from({ length: lines }, (_, i) => ({ line: i + 1, column: -1 }));
   } else if (breakpoints) {
     breakpointsDef = breakpoints.split(',').map(line => ({ line: parseInt(line) }));
   }
 
   logger.debug('[StepsRunner] set breakpoints', breakpointsDef);
-  let response = await client.setBreakpoints({
+  const response = await client.setBreakpoints({
     breakpoints: breakpointsDef,
     source: {
       path: programPath,
@@ -423,20 +423,21 @@ async function setBreakpoints({ client, programPath, breakpoints }: SetBreakpoin
   });
   logger.debug('[StepsRunner] set breakpoints intermediate response', response);
 
-  const verifiedBreakpoints = response.breakpoints
-    .filter(breakpoint => breakpoint.verified && typeof breakpoint.line === 'number')
-    .map(({ line }) => ({ line: line as number }));
+  // TODO :: do we really need to eliminate non-verified breakpoints? seems to cause issues with java-debug
+  // const verifiedBreakpoints = response.breakpoints
+  //   .filter(breakpoint => breakpoint.verified && typeof breakpoint.line === 'number')
+  //   .map(({ line }) => ({ line: line as number }));
 
-  if (verifiedBreakpoints.length === breakpointsDef.length) {
-    return;
-  }
+  // if (verifiedBreakpoints.length === breakpointsDef.length) {
+  //   return;
+  // }
 
-  response = await client.setBreakpoints({
-    breakpoints: verifiedBreakpoints,
-    source: { path: programPath },
-  });
+  // response = await client.setBreakpoints({
+  //   breakpoints: verifiedBreakpoints,
+  //   source: { path: programPath },
+  // });
 
-  logger.debug('[StepsRunner] set breakpoints response', response);
+  // logger.debug('[StepsRunner] set breakpoints response', response);
 }
 
 /**
@@ -460,6 +461,7 @@ const registerEvents = (client: SocketDebugClient, onTerminated: (exitCode?: num
 
   client.onThread(thread => {
     logger.debug('[Event] Thread', thread);
+    void client.pause({ threadId: thread.threadId });
   });
 };
 
@@ -476,7 +478,7 @@ interface GetAndProcessSnapshotParams {
 
 async function getAndProcessSnapshot({ context, filePaths, threadId, fullSnapshot }: GetAndProcessSnapshotParams): Promise<void> {
   try {
-    logger.debug('getAndProcessSnapshot');
+    logger.debug('getAndProcessSnapshot', filePaths, threadId, fullSnapshot);
     const snapshot = await getSnapshot({ context, filePaths, threadId, fullSnapshot });
 
     if (snapshot.stackFrames && snapshot.stackFrames.length > 0) {

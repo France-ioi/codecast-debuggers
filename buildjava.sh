@@ -1,0 +1,1 @@
+npm run build:java ; docker run -it -v /var/www/codecast-debuggers/jdtls/:/tmp/jdtls java-debugger cp /usr/project/java-debug/com.microsoft.java.debug.plugin/target/com.microsoft.java.debug.plugin-0.50.0.jar /tmp/jdtls/

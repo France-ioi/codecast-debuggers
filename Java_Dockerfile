@@ -1,9 +1,12 @@
-FROM eclipse-temurin:21-jdk-alpine
+FROM eclipse-temurin:17-jdk-alpine
+
+RUN apk add --update --no-cache python3
 
 COPY ./java-debug /usr/project/java-debug
+RUN mkdir /usr/project/jdtls && cd /usr/project/jdtls && tar xfpv /usr/project/java-debug/jdt-language-server-1.29.0-202310261436.tar.gz
 RUN cd /usr/project/java-debug && ./mvnw clean install -U
 
-ENV ROOT=/usr/project/java-debug
+ENV ROOT=/usr/project/
 WORKDIR ${ROOT}
 
 CMD [""]

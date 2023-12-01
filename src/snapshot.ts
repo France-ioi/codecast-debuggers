@@ -1,6 +1,7 @@
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { RunStepContext } from './run-steps/runner';
 import { logger } from './logger';
+import path from 'path';
 
 export type StepsAcc = StepSnapshot[];
 
@@ -215,5 +216,5 @@ async function getVariable(
 
 function isKeepableStackFrame(canDigStackFrame: (stackFrame: DebugProtocol.StackFrame) => boolean, fileAbsolutePaths: string[]) {
   return (stackFrame: DebugProtocol.StackFrame): boolean =>
-    canDigStackFrame(stackFrame) && !!stackFrame.source && fileAbsolutePaths.some(filePath => filePath === stackFrame.source?.path);
+    canDigStackFrame(stackFrame) && !!stackFrame.source && fileAbsolutePaths.some(filePath => filePath === stackFrame.source?.path || path.basename(filePath) === stackFrame.source?.path);
 }
