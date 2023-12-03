@@ -470,7 +470,7 @@ interface GetAndProcessSnapshotParams {
   /**
    * absolute paths
    */
-  filePaths: string[], // absolute paths
+  filePaths: string[],
   context: RunStepContext,
   threadId: number,
   fullSnapshot: boolean,
@@ -478,11 +478,12 @@ interface GetAndProcessSnapshotParams {
 
 async function getAndProcessSnapshot({ context, filePaths, threadId, fullSnapshot }: GetAndProcessSnapshotParams): Promise<void> {
   try {
-    logger.debug('getAndProcessSnapshot', filePaths, threadId, fullSnapshot);
+    logger.debug('getAndProcessSnapshot', threadId);
     const snapshot = await getSnapshot({ context, filePaths, threadId, fullSnapshot });
 
-    if (snapshot.stackFrames && snapshot.stackFrames.length > 0) {
-      context.onSnapshot(snapshot);
+    // Check that the top stack frame is a user frame, otherwise step out
+    if (snapshot.stackFrames && snapshot.stackFrames[0]?.userFrame) {
+      context.onSnapshot({ ...snapshot, stackFrames: snapshot.stackFrames.filter(frame => frame.userFrame) });
     } else {
       await context.client.stepOut({ threadId, granularity: 'instruction' });
     }
