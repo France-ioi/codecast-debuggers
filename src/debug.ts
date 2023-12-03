@@ -67,7 +67,7 @@ export async function getSteps(commandOptions: CommandLineOptions): Promise<Step
 
     function onSnapshot(snapshot: StepSnapshot): void {
       steps.push(snapshot);
-      void runner?.stepOver();
+      void runner?.stepIn();
     }
 
     function onTerminate(message: TerminationMessage): void {

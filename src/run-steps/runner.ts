@@ -244,12 +244,14 @@ export const makeRunner = ({
       if (typeof stoppedEvent.threadId !== 'number') {
         return;
       }
-      lastThreadId = stoppedEvent.threadId;
+      const threadId: number = stoppedEvent.threadId;
 
       const reasons = [ 'breakpoint', 'step' ];
       if (!reasons.includes(stoppedEvent.reason)) {
         return;
       }
+
+      lastThreadId = threadId;
 
       function onSnapshot(snapshot: StepSnapshot): void {
         // Remove all breakpoints now that the program stopped somewhere
@@ -269,14 +271,14 @@ export const makeRunner = ({
           logger.dir(snapshot, { colors: true, depth: 10 });
           options.onSnapshot(snapshot);
         } else {
-          void client.stepIn({ threadId: lastThreadId, granularity: 'instruction' });
+          void client.stepIn({ threadId, granularity: 'instruction' });
         }
       }
 
       const snapshotParams = {
         filePaths: [ options.main, ...options.files ].map(file => path.resolve(process.cwd(), file.relativePath)),
         context: { client, canDigStackFrame, canDigScope, canDigVariable, breakpoints: options.breakpoints, onSnapshot: onSnapshot },
-        threadId: stoppedEvent.threadId,
+        threadId,
         fullSnapshot: stepsDone + 1 >= speed,
       };
 
@@ -297,8 +299,7 @@ export const makeRunner = ({
     }
 
     async function stepIn(): Promise<void> {
-      logger.debug('lastThreadId', lastThreadId);
-      await client.stepIn({ threadId: 1, granularity: 'instruction' });
+      await client.stepIn({ threadId: lastThreadId, granularity: 'instruction' });
     }
 
     async function stepOut(): Promise<void> {
@@ -306,8 +307,7 @@ export const makeRunner = ({
     }
 
     async function stepOver(): Promise<void> {
-      logger.debug('lastThreadId', lastThreadId);
-      await client.next({ threadId: 1, granularity: 'instruction' });
+      await client.next({ threadId: lastThreadId, granularity: 'instruction' });
     }
 
     async function terminate(): Promise<void> {
