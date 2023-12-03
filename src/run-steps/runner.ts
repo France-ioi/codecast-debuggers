@@ -244,12 +244,14 @@ export const makeRunner = ({
       if (typeof stoppedEvent.threadId !== 'number') {
         return;
       }
-      lastThreadId = stoppedEvent.threadId;
+      const threadId: number = stoppedEvent.threadId;
 
       const reasons = [ 'breakpoint', 'step' ];
       if (!reasons.includes(stoppedEvent.reason)) {
         return;
       }
+
+      lastThreadId = threadId;
 
       function onSnapshot(snapshot: StepSnapshot): void {
         // Remove all breakpoints now that the program stopped somewhere
@@ -269,14 +271,14 @@ export const makeRunner = ({
           logger.dir(snapshot, { colors: true, depth: 10 });
           options.onSnapshot(snapshot);
         } else {
-          void client.stepIn({ threadId: lastThreadId, granularity: 'instruction' });
+          void client.stepIn({ threadId, granularity: 'instruction' });
         }
       }
 
       const snapshotParams = {
         filePaths: [ options.main, ...options.files ].map(file => path.resolve(process.cwd(), file.relativePath)),
         context: { client, canDigStackFrame, canDigScope, canDigVariable, breakpoints: options.breakpoints, onSnapshot: onSnapshot },
-        threadId: stoppedEvent.threadId,
+        threadId,
         fullSnapshot: stepsDone + 1 >= speed,
       };
 
@@ -409,13 +411,13 @@ async function setBreakpoints({ client, programPath, breakpoints }: SetBreakpoin
 
   let breakpointsDef: DebugProtocol.SourceBreakpoint[] = [];
   if (breakpoints == '*') {
-    breakpointsDef = Array.from({ length: lines }, (_, i) => ({ line: i + 1 }));
+    breakpointsDef = Array.from({ length: lines }, (_, i) => ({ line: i + 1, column: -1 }));
   } else if (breakpoints) {
     breakpointsDef = breakpoints.split(',').map(line => ({ line: parseInt(line) }));
   }
 
   logger.debug('[StepsRunner] set breakpoints', breakpointsDef);
-  let response = await client.setBreakpoints({
+  const response = await client.setBreakpoints({
     breakpoints: breakpointsDef,
     source: {
       path: programPath,
@@ -423,20 +425,21 @@ async function setBreakpoints({ client, programPath, breakpoints }: SetBreakpoin
   });
   logger.debug('[StepsRunner] set breakpoints intermediate response', response);
 
-  const verifiedBreakpoints = response.breakpoints
-    .filter(breakpoint => breakpoint.verified && typeof breakpoint.line === 'number')
-    .map(({ line }) => ({ line: line as number }));
+  // TODO :: do we really need to eliminate non-verified breakpoints? seems to cause issues with java-debug
+  // const verifiedBreakpoints = response.breakpoints
+  //   .filter(breakpoint => breakpoint.verified && typeof breakpoint.line === 'number')
+  //   .map(({ line }) => ({ line: line as number }));
 
-  if (verifiedBreakpoints.length === breakpointsDef.length) {
-    return;
-  }
+  // if (verifiedBreakpoints.length === breakpointsDef.length) {
+  //   return;
+  // }
 
-  response = await client.setBreakpoints({
-    breakpoints: verifiedBreakpoints,
-    source: { path: programPath },
-  });
+  // response = await client.setBreakpoints({
+  //   breakpoints: verifiedBreakpoints,
+  //   source: { path: programPath },
+  // });
 
-  logger.debug('[StepsRunner] set breakpoints response', response);
+  // logger.debug('[StepsRunner] set breakpoints response', response);
 }
 
 /**
@@ -468,7 +471,7 @@ interface GetAndProcessSnapshotParams {
   /**
    * absolute paths
    */
-  filePaths: string[], // absolute paths
+  filePaths: string[],
   context: RunStepContext,
   threadId: number,
   fullSnapshot: boolean,
@@ -476,11 +479,12 @@ interface GetAndProcessSnapshotParams {
 
 async function getAndProcessSnapshot({ context, filePaths, threadId, fullSnapshot }: GetAndProcessSnapshotParams): Promise<void> {
   try {
-    logger.debug('getAndProcessSnapshot');
+    logger.debug('getAndProcessSnapshot', threadId);
     const snapshot = await getSnapshot({ context, filePaths, threadId, fullSnapshot });
 
-    if (snapshot.stackFrames && snapshot.stackFrames.length > 0) {
-      context.onSnapshot(snapshot);
+    // Check that the top stack frame is a user frame, otherwise step out
+    if (snapshot.stackFrames && snapshot.stackFrames[0]?.userFrame) {
+      context.onSnapshot({ ...snapshot, stackFrames: snapshot.stackFrames.filter(frame => frame.userFrame) });
     } else {
       await context.client.stepOut({ threadId, granularity: 'instruction' });
     }

@@ -30,6 +30,7 @@
     "recursive-diff": "^1.0.8",
     "tmp": "^0.2.1",
     "ts-command-line-args": "^2.2.1",
+    "ts-lsp-client": "^1.0.1",
     "ws": "^8.14.2"
   },
   "devDependencies": {

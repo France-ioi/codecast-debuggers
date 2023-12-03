@@ -1,11 +1,12 @@
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { RunStepContext } from './run-steps/runner';
 import { logger } from './logger';
+import path from 'path';
 
 export type StepsAcc = StepSnapshot[];
 
 export interface StepSnapshot {
-  stackFrames?: StackFrame[],
+  stackFrames?: StackFrameSnapshot[],
   stdout?: string[],
   stderr?: string[],
   terminated?: boolean,
@@ -17,20 +18,25 @@ export interface TerminationMessage {
   message: string,
 }
 
-export interface StackFrame extends DebugProtocol.StackFrame {
-  scopes: Scope[],
+export interface StackFrameSnapshot extends DebugProtocol.StackFrame {
+  scopes: ScopeSnapshot[],
+
+  /**
+   * Whether this stack frame is a "user frame", both within a user file and diggable
+   */
+  userFrame?: boolean,
 }
-export interface Scope extends DebugProtocol.Scope {
+export interface ScopeSnapshot extends DebugProtocol.Scope {
   variables: (string | DebugProtocol.Variable)[],
   variableDetails: VariableHashMap,
 }
-export interface Variable extends DebugProtocol.Variable {
+export interface VariableSnapshot extends DebugProtocol.Variable {
   variables: (string | DebugProtocol.Variable)[],
   memory?: DebugProtocol.ReadMemoryResponse['body'],
 }
 
 interface VariableHashMap {
-  [reference: string]: Variable,
+  [reference: string]: VariableSnapshot,
 }
 
 interface VariableResultHashMap {
@@ -63,13 +69,17 @@ interface GetSnapshotParams {
 
 export async function getSnapshot({ context, filePaths, threadId, fullSnapshot }: GetSnapshotParams): Promise<StepSnapshot> {
   const result = await context.client.stackTrace({ threadId });
-  const keepableStackFrames = result.stackFrames.filter(isKeepableStackFrame(context.canDigStackFrame, filePaths));
+  const stackFrames: StackFrameSnapshot[] = result.stackFrames.map(
+    (frame: DebugProtocol.StackFrame) =>
+      ({ ...frame, scopes: [], userFrame: isUserStackFrame(context.canDigStackFrame, filePaths, frame) })
+  );
   if (fullSnapshot) {
     return { stackFrames: await Promise.all(
-      keepableStackFrames.map(stackFrame => getStackFrame({ context, stackFrame }))
+      // only dig user stack frames
+      stackFrames.map(stackFrame => (stackFrame.userFrame ? getStackFrame({ context, stackFrame }) : Promise.resolve(stackFrame)))
     ) };
   } else {
-    return { stackFrames: keepableStackFrames.map(stackFrame => ({ ...stackFrame, scopes: [] })) };
+    return { stackFrames };
   }
 }
 
@@ -78,7 +88,7 @@ interface GetStackFrameParams {
     context: RunStepContext,
 }
 
-async function getStackFrame({ context, stackFrame }: GetStackFrameParams): Promise<StackFrame> {
+async function getStackFrame({ context, stackFrame }: GetStackFrameParams): Promise<StackFrameSnapshot> {
   /*if (!isKeepableStackFrame(context.canDigStackFrame, filePaths)(stackFrame)) {
     return { ...stackFrame, scopes: [] };
   }*/
@@ -93,7 +103,7 @@ interface GetScopeParams {
     context: RunStepContext,
 }
 
-async function getScope({ context, scope }: GetScopeParams): Promise<Scope> {
+async function getScope({ context, scope }: GetScopeParams): Promise<ScopeSnapshot> {
   if (!context.canDigScope(scope)) {
     return {
       ...scope,
@@ -213,7 +223,6 @@ async function getVariable(
   }
 }
 
-function isKeepableStackFrame(canDigStackFrame: (stackFrame: DebugProtocol.StackFrame) => boolean, fileAbsolutePaths: string[]) {
-  return (stackFrame: DebugProtocol.StackFrame): boolean =>
-    canDigStackFrame(stackFrame) && !!stackFrame.source && fileAbsolutePaths.some(filePath => filePath === stackFrame.source?.path);
+function isUserStackFrame(canDigStackFrame: (stackFrame: DebugProtocol.StackFrame) => boolean, fileAbsolutePaths: string[], stackFrame: DebugProtocol.StackFrame): boolean {
+  return canDigStackFrame(stackFrame) && !!stackFrame.source && fileAbsolutePaths.some(filePath => filePath === stackFrame.source?.path || path.basename(filePath) === stackFrame.source?.path);
 }
