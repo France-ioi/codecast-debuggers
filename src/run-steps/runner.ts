@@ -294,6 +294,8 @@ export const makeRunner = ({
     // send 'configuration done' (in some debuggers this will trigger 'continue' if attach was awaited)
     await client.configurationDone({});
 
+    logger.debug(4, '[runner] Runner ready');
+
     function setSpeed(newSpeed?: number): void {
       speed = Math.max(1, Math.floor(newSpeed || 1));
     }
@@ -461,7 +463,6 @@ const registerEvents = (client: SocketDebugClient, onTerminated: (exitCode?: num
 
   client.onThread(thread => {
     logger.debug('[Event] Thread', thread);
-    void client.pause({ threadId: thread.threadId });
   });
 };
 
