@@ -174,6 +174,8 @@ async function spawnDebugAdapterServer(
       'run',
       '-i',
       '--rm',
+      '--name',
+      `python-${dap.port.toString()}`,
       '-v',
       `${programPath}:${programPath}:ro`,
       '-v',
