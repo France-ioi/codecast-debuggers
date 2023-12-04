@@ -1,12 +1,10 @@
 import cp from 'child_process';
-import fs from 'fs';
 import path from 'path';
 import * as pty from 'node-pty';
 import { SocketDebugClient } from 'node-debugprotocol-client';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { logger } from '../logger';
 import { MakeRunnerConfig, makeRunner, RunnerOptions, Runner, Cleanable, CompilationError } from './runner';
-import tmp from 'tmp';
 import { removeExt } from '../utils';
 
 type Language = 'c' | 'cpp';
@@ -27,7 +25,7 @@ export const runStepsWithLLDB = (language: Language, options: RunnerOptions): Pr
   return runner(options);
 };
 
-const connect = (language: Language): MakeRunnerConfig['connect'] => async ({ uid, beforeInitialize, logLevel, onOutput, cleanables, programPath, inputStream, inputPath }) => {
+const connect = (language: Language): MakeRunnerConfig['connect'] => async ({ uid, beforeInitialize, logLevel, onOutput, cleanables, programPath, inputPath }) => {
   const connectLLDBTime = process.hrtime();
   const dap = {
     host: 'localhost',
@@ -35,15 +33,6 @@ const connect = (language: Language): MakeRunnerConfig['connect'] => async ({ ui
   };
 
   const executablePath = removeExt(programPath);
-
-  if (inputStream && !inputPath) {
-    inputPath = tmp.fileSync({ postfix: '.txt' }).name;
-    logger.debug('Creating temporary file for input stream', inputPath);
-    cleanables.push({ path: inputPath });
-    await new Promise(resolve => {
-      inputStream.pipe(fs.createWriteStream(inputPath)).on('finish', resolve);
-    });
-  }
 
   logger.debug(1, '[LLDB StepsRunner] start adapter server');
   await spawnAdapterServer(dap, language, cleanables, programPath, executablePath, uid, inputPath);

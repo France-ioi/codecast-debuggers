@@ -1,8 +1,8 @@
 import path from 'path';
 
 export interface Config {
-  debugResultsPath: string,
-  sourcesPath: string,
+  dataPath: string,
+  dataCleanupExclude: string[],
   dockerPortRange: [number, number],
   limitTime: number,
   server: {
@@ -19,8 +19,8 @@ export interface Config {
 }
 
 export const config: Config = {
-  debugResultsPath: path.join(path.dirname(__filename), '..', 'debug-results'),
-  sourcesPath: path.join(path.dirname(__filename), '..', 'sources'),
+  dataPath: path.join(path.dirname(__filename), '..', 'data'),
+  dataCleanupExclude: [ 'debug-results' ],
   dockerPortRange: [ 15000, 20000 ],
   limitTime: 600.0,
   server: {

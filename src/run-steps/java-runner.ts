@@ -1,18 +1,17 @@
 import cp from 'child_process';
 import fs from 'fs';
 import path from 'path';
-import tmp from 'tmp';
 import { SocketDebugClient } from 'node-debugprotocol-client';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { logger } from '../logger';
 import { Cleanable, CompilationError, makeRunner, MakeRunnerConfig, Runner, RunnerOptions } from './runner';
-import { Stream } from 'stream';
 import { config } from '../config';
 import { JSONRPCEndpoint, LspClient } from 'ts-lsp-client';
 import * as pty from 'node-pty';
+import { getPath } from '../utils';
 
 export const runStepsWithJavaDebugger = (options: RunnerOptions): Promise<Runner> => {
-  const programPath = path.join(config.sourcesPath, 'code-' + options.uid.toString() + '.java');
+  const programPath = getPath('sources', options.uid, 'code.java');
   fs.writeFileSync(programPath, fs.readFileSync(options.main.relativePath, 'utf-8'));
 
   const runner = makeRunner({
@@ -23,26 +22,18 @@ export const runStepsWithJavaDebugger = (options: RunnerOptions): Promise<Runner
   return runner({ ...options, main: { relativePath: programPath } } as RunnerOptions);
 };
 
-const connect: MakeRunnerConfig['connect'] = async ({ uid, cleanables, programPath, logLevel, onOutput, beforeInitialize, inputStream, inputPath }) => {
+const connect: MakeRunnerConfig['connect'] = async ({ uid, cleanables, programPath, logLevel, onOutput, beforeInitialize }) => {
   const language = 'Java';
   const dap = {
     host: 'localhost',
     port: uid,
   };
 
+  cleanables.push({ path: programPath });
   const compiledPath = await compile(programPath, uid, cleanables);
 
-  if (inputStream && !inputPath) {
-    inputPath = tmp.fileSync({ postfix: '.txt' }).name;
-    logger.debug('Creating temporary file for input stream', inputPath);
-    cleanables.push({ path: inputPath });
-    await new Promise(resolve => {
-      inputStream.pipe(fs.createWriteStream(inputPath)).on('finish', resolve);
-    });
-  }
-
   logger.debug(1, '[Java StepsRunner] start adapter server');
-  await spawnDebugAdapterServer(dap, programPath, compiledPath, cleanables, inputStream);
+  await spawnDebugAdapterServer(dap, programPath, compiledPath, cleanables);
 
   logger.debug(2, '[Java StepsRunner] instantiate SocketDebugClient');
   const client = new SocketDebugClient({
@@ -123,10 +114,6 @@ const connect: MakeRunnerConfig['connect'] = async ({ uid, cleanables, programPa
           reject(new Error(`Terminal request exited with code ${e.exitCode}`));
         }
       });
-      inputStream?.on('data', (data: string) => {
-        logger.debug('[input stream]', data);
-        subprocess.write(data);
-      });
 
       cleanables.push(subprocess);
 
@@ -168,8 +155,7 @@ const connect: MakeRunnerConfig['connect'] = async ({ uid, cleanables, programPa
 
 
 async function compile(programPath: string, uid: number, cleanables: Cleanable[]): Promise<string> {
-  const compilationPath = path.join('/tmp', 'javac-' + uid.toString());
-  fs.mkdirSync(compilationPath, { recursive: true });
+  const compilationPath = getPath('compilations', uid);
   cleanables.push({ path: compilationPath });
 
   const subprocessParams = [
@@ -214,12 +200,8 @@ async function compile(programPath: string, uid: number, cleanables: Cleanable[]
   if (!compiledFileName) {
     throw new Error('Compilation failed');
   }
-  logger.debug('Compiled Java', compiledFileName);
-
-  // copy to sources folder
-  const compiledPath = path.join(config.sourcesPath, compiledFileName);
-  fs.copyFileSync(path.join(compilationPath, compiledFileName), compiledPath);
-  logger.debug('Copied Java', compiledPath);
+  const compiledPath = path.join(compilationPath, compiledFileName);
+  logger.debug('Compiled Java', compiledPath);
 
   return compiledPath;
 }
@@ -229,7 +211,6 @@ async function spawnDebugAdapterServer(
   _programPath: string,
   _compiledPath: string,
   cleanables: Cleanable[],
-  _inputStream: Stream|null,
 ): Promise<void> {
   // To spawn the DAP server, we need to spawn the Eclipse JDT LS
   const lspSubprocess = [
@@ -242,7 +223,7 @@ async function spawnDebugAdapterServer(
     '-p',
     `${dap.port}:4000`,
     '-v',
-    `${config.sourcesPath}:${config.sourcesPath}`,
+    `${config.dataPath}:${config.dataPath}`,
     'java-debugger',
     '/usr/project/jdtls/bin/jdtls',
     '-configuration',

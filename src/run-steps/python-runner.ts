@@ -5,11 +5,10 @@ import { SocketDebugClient } from 'node-debugprotocol-client';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { logger } from '../logger';
 import { Cleanable, makeRunner, MakeRunnerConfig, Runner, RunnerOptions } from './runner';
-import { Stream } from 'stream';
-import { config } from '../config';
+import { getPath } from '../utils';
 
 export const runStepsWithPythonDebugger = (options: RunnerOptions): Promise<Runner> => {
-  const runnerProgramPath = path.join(config.sourcesPath, 'code-' + options.uid.toString() + '.py');
+  const runnerProgramPath = getPath('sources', options.uid, 'code.py');
   fs.writeFileSync(runnerProgramPath, fs.readFileSync(options.main.relativePath, 'utf-8'));
 
   const runner = makeRunner({
@@ -32,7 +31,7 @@ export const runStepsWithPythonDebugger = (options: RunnerOptions): Promise<Runn
   return runner({ ...options, main: { relativePath: runnerProgramPath } } as RunnerOptions);
 };
 
-const connect: MakeRunnerConfig['connect'] = async ({ uid, cleanables, programPath, logLevel, onOutput, beforeInitialize, inputStream }) => {
+const connect: MakeRunnerConfig['connect'] = async ({ uid, cleanables, programPath, logLevel, onOutput, beforeInitialize, inputPath }) => {
   const language = 'Python';
   const dap = {
     host: 'localhost',
@@ -41,12 +40,12 @@ const connect: MakeRunnerConfig['connect'] = async ({ uid, cleanables, programPa
 
   // Add a last line to the program
   // This is to avoid a bug in debugpy where it doesn't stop on the last line
-  const runnerProgramPath = path.join(config.sourcesPath, 'code-' + dap.port.toString() + '.py');
+  const runnerProgramPath = getPath('sources', uid, 'code.py');
   fs.writeFileSync(runnerProgramPath, fs.readFileSync(programPath, 'utf-8') + '\npass\n');
   cleanables.push({ path: runnerProgramPath });
 
   logger.debug(1, '[Python StepsRunner] start adapter server test');
-  await spawnDebugAdapterServer(dap, runnerProgramPath, cleanables, inputStream);
+  await spawnDebugAdapterServer(dap, runnerProgramPath, cleanables, inputPath);
 
   logger.debug(2, '[Python StepsRunner] instantiate SocketDebugClient');
   const client = new SocketDebugClient({
@@ -160,13 +159,13 @@ async function spawnDebugAdapterServer(
   dap: { host: string, port: number },
   programPath: string,
   cleanables: Cleanable[],
-  inputStream: Stream|null,
+  inputPath: string
 ): Promise<void> {
   const debugPyFolderPath = '/usr/local/lib/python3.10/site-packages/debugpy';
 
   return new Promise<void>(resolve => {
     // Create a folder for debugpy to log to
-    const logDirPath = path.join(config.sourcesPath, 'debugpy-' + dap.port.toString());
+    const logDirPath = getPath('tmp', dap.port);
     fs.mkdirSync(logDirPath, { recursive: true });
     cleanables.push({ path: logDirPath });
 
@@ -210,11 +209,8 @@ async function spawnDebugAdapterServer(
     logger.log('cmdline', subprocessParams.join(' '));
 
     const subprocess = cp.spawn(subprocessParams[0] as string, subprocessParams.slice(1), {
-      stdio: [ (inputStream) ? 'pipe' : 'ignore', 'pipe', 'pipe' ],
+      stdio: [ (inputPath) ? fs.createReadStream(inputPath) : 'ignore', 'pipe', 'pipe' ],
     });
-    if (inputStream && subprocess.stdin) {
-      inputStream.pipe(subprocess.stdin);
-    }
     cleanables.push(subprocess);
 
     subprocess.on('error', error => logger.error('Server error:', error));

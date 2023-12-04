@@ -1,5 +1,6 @@
 import path from 'path';
-import fs from 'fs/promises';
+import fs from 'fs';
+import fsp from 'fs/promises';
 import { config } from './config';
 import Docker from 'dockerode';
 import { logger } from './logger';
@@ -34,7 +35,7 @@ export function removeExt(filePath: string): string {
 }
 
 interface CleanableServerResourcesList {
-  sources: string[],
+  files: string[],
   containers: Docker.ContainerInfo[],
 }
 
@@ -43,17 +44,25 @@ interface CleanableServerResourcesList {
  */
 export async function getLeftoverResources(): Promise<CleanableServerResourcesList> {
   // Delete all files and folders in sources
-  const sources = await fs.readdir(config.sourcesPath);
+  const dataFolders = await fsp.readdir(config.dataPath);
+  const files = (await Promise.all(dataFolders
+    .filter(folder => !config.dataCleanupExclude.includes(folder))
+    .map(async folder => {
+      const folderPath = path.join(config.dataPath, folder);
+
+      return (await fsp.readdir(folderPath)).map(file => path.join(folder, file));
+    })
+  )).flat();
 
   // Stop all docker containers
   const docker = new Docker();
   const containers = (await docker.listContainers()).filter(container => ownDockerNames.some(name => container.Names.some(n => n.startsWith('/' + name))));
 
-  return { sources, containers };
+  return { files, containers };
 }
 
-export function humanReadableLeftoverResources({ sources, containers }: CleanableServerResourcesList): string {
-  return (sources.length ? `Sources: ${sources.join(', ')}\n` : '') +
+export function humanReadableLeftoverResources({ files, containers }: CleanableServerResourcesList): string {
+  return (files.length ? `Files: ${files.join(', ')}\n` : '') +
     (containers.length ? `Containers: ${containers.map(container => container.Names.map(n => n.substring(1)).join(', ')).join(', ')}\n` : '');
 }
 
@@ -61,18 +70,18 @@ export function humanReadableLeftoverResources({ sources, containers }: Cleanabl
  * Removes server resources possibly left over by a previous execution
  */
 export async function cleanLeftoverResources(): Promise<void> {
-  const { sources, containers } = await getLeftoverResources();
+  const { files, containers } = await getLeftoverResources();
 
-  // Delete all files and folders in sources
-  if (sources.length) {
-    logger.info(`Removing ${sources.length} leftover source files...`);
-    await Promise.all(sources
-      .map(source => path.join(config.sourcesPath, source))
-      .map(async source => {
-        if ((await fs.stat(source)).isDirectory()) {
-          await fs.rmdir(source, { recursive: true });
+  // Delete all files and folders in data
+  if (files.length) {
+    logger.info(`Removing ${files.length} leftover files...`);
+    await Promise.all(files
+      .map(file => path.join(config.dataPath, file))
+      .map(async file => {
+        if ((await fsp.stat(file)).isDirectory()) {
+          await fsp.rm(file, { recursive: true });
         } else {
-          await fs.unlink(source);
+          await fsp.unlink(file);
         }
       }));
   }
@@ -82,5 +91,19 @@ export async function cleanLeftoverResources(): Promise<void> {
     logger.info(`Removing ${containers.length} leftover docker containers...`);
     const docker = new Docker();
     await Promise.all(containers.map(async container => docker.getContainer(container.Id).stop()));
+  }
+}
+
+export function getPath(type?: string, uid?: number, filename?: string): string {
+  const typeSubfolder = path.join(config.dataPath, type ?? 'tmp');
+  const folder = uid && !filename ? path.join(typeSubfolder, uid.toString()) : typeSubfolder;
+  fs.mkdirSync(folder, { recursive: true });
+  if (filename) {
+    const parsed = path.parse(filename);
+    const uidFilename = uid ? `${parsed.name}-${uid}${parsed.ext}` : filename;
+
+    return path.join(folder, uidFilename);
+  } else {
+    return path.join(folder);
   }
 }

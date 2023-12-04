@@ -4,10 +4,8 @@ import { Language, extensionByLanguage, getRunner } from './run-steps/factory';
 import { Runner } from './run-steps/runner';
 import { WebSocket, WebSocketServer } from 'ws';
 import { config } from './config';
-import path from 'path';
-import { Readable } from 'stream';
 import { StepSnapshot, TerminationMessage } from './snapshot';
-import { cleanLeftoverResources, getLeftoverResources, getUid, humanReadableLeftoverResources } from './utils';
+import { cleanLeftoverResources, getLeftoverResources, getPath, getUid, humanReadableLeftoverResources } from './utils';
 import { freemem } from 'os';
 
 export interface RemoteExecutionClientPayload {
@@ -100,16 +98,19 @@ function handleConnection(ws: WebSocket): void {
       clientLanguage = 'cpp';
     }
     const language = clientLanguage as Language;
-    const inputStream = input ? Readable.from(input) : Readable.from('1 2');
     const inputPath = '';
-    sourcePath = path.join(config.sourcesPath, 'source' + uid.toString() + extensionByLanguage[language]);
+    if (input) {
+      // TODO :: change folder
+      const inputPath = getPath('inputs', uid, 'input.txt');
+      fs.writeFileSync(inputPath, input);
+    }
+    sourcePath = getPath('sources', uid, 'source' + extensionByLanguage[language]);
     fs.writeFileSync(sourcePath, sourceCode);
 
     runner = await getRunner(language, {
       uid,
       logLevel: logger.level === 'debug' ? 'On' : 'Off',
       main: { relativePath: sourcePath },
-      inputStream,
       inputPath,
       files: [],
       breakpoints: '*',
@@ -150,9 +151,9 @@ async function main(): Promise<void> {
   if (config.server.cleanLeftoverOnStartup || process.argv.includes('--clean')) {
     await cleanLeftoverResources();
   } else {
-    const { sources, containers } = await getLeftoverResources();
-    if (sources.length > 0 || containers.length > 0) {
-      logger.warn('Warning : leftover resources found.', humanReadableLeftoverResources({ sources, containers }));
+    const { files, containers } = await getLeftoverResources();
+    if (files.length > 0 || containers.length > 0) {
+      logger.warn('Warning : leftover resources found.', humanReadableLeftoverResources({ files, containers }));
       logger.warn('Execute the server with the --clean flag to clean them up.');
     }
   }

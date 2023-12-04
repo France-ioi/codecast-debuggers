@@ -5,7 +5,6 @@ import path from 'path';
 import { LogLevel, SocketDebugClient } from 'node-debugprotocol-client';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { logger } from '../logger';
-import { Stream } from 'stream';
 import process from 'process';
 import { StepSnapshot, TerminationMessage, getSnapshot } from '../snapshot';
 import { config } from '../config';
@@ -42,7 +41,6 @@ export interface MakeRunnerConfig {
     cleanables: Cleanable[],
 
     programPath: string,
-    inputStream: Stream|null,
     inputPath: string,
     logLevel: LogLevel,
 
@@ -94,7 +92,6 @@ interface File {
 export interface RunnerOptions {
   uid: number,
   main: File,
-  inputStream: Stream|null,
   inputPath: string,
   files: Array<File>,
   logLevel?: 'On' | 'Off',
@@ -205,7 +202,6 @@ export const makeRunner = ({
         uid: options.uid,
         cleanables,
         programPath,
-        inputStream: options.inputStream,
         inputPath: options.inputPath,
         logLevel: LogLevel[options.logLevel ?? 'Off'],
         onOutput,
@@ -366,8 +362,8 @@ async function destroy(origin: string, { destroyed, cleanables, client, afterDes
       if (!fs.existsSync(cleanable.path)) {
         return;
       }
-      if (!cleanable.path.startsWith(config.sourcesPath)) {
-        // Safety check that it's in the sourcesPath
+      if (!cleanable.path.startsWith(config.dataPath)) {
+        // Safety check that it's in the dataPath
         return;
       }
       if (fs.lstatSync(cleanable.path).isDirectory()) {
