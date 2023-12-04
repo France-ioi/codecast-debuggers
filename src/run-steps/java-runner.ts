@@ -1,10 +1,11 @@
 import cp from 'child_process';
 import fs from 'fs';
 import path from 'path';
+import tmp from 'tmp';
 import { SocketDebugClient } from 'node-debugprotocol-client';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { logger } from '../logger';
-import { Cleanable, makeRunner, MakeRunnerConfig, Runner, RunnerOptions } from './runner';
+import { Cleanable, CompilationError, makeRunner, MakeRunnerConfig, Runner, RunnerOptions } from './runner';
 import { Stream } from 'stream';
 import { config } from '../config';
 import { JSONRPCEndpoint, LspClient } from 'ts-lsp-client';
@@ -16,12 +17,13 @@ export const runStepsWithJavaDebugger = (options: RunnerOptions): Promise<Runner
 
   const runner = makeRunner({
     connect,
+    canDigVariable: variable => variable.type != 'Scanner',
   });
 
   return runner({ ...options, main: { relativePath: programPath } } as RunnerOptions);
 };
 
-const connect: MakeRunnerConfig['connect'] = async ({ uid, cleanables, programPath, logLevel, onOutput, beforeInitialize, inputStream }) => {
+const connect: MakeRunnerConfig['connect'] = async ({ uid, cleanables, programPath, logLevel, onOutput, beforeInitialize, inputStream, inputPath }) => {
   const language = 'Java';
   const dap = {
     host: 'localhost',
@@ -29,6 +31,15 @@ const connect: MakeRunnerConfig['connect'] = async ({ uid, cleanables, programPa
   };
 
   const compiledPath = await compile(programPath, uid, cleanables);
+
+  if (inputStream && !inputPath) {
+    inputPath = tmp.fileSync({ postfix: '.txt' }).name;
+    logger.debug('Creating temporary file for input stream', inputPath);
+    cleanables.push({ path: inputPath });
+    await new Promise(resolve => {
+      inputStream.pipe(fs.createWriteStream(inputPath)).on('finish', resolve);
+    });
+  }
 
   logger.debug(1, '[Java StepsRunner] start adapter server');
   await spawnDebugAdapterServer(dap, programPath, compiledPath, cleanables, inputStream);
@@ -69,6 +80,7 @@ const connect: MakeRunnerConfig['connect'] = async ({ uid, cleanables, programPa
     supportsProgressReporting: true,
     supportsVariablePaging: true,
     supportsVariableType: true,
+
   });
 
   logger.debug('Initialize Response : ', initializeResponse);
@@ -86,7 +98,6 @@ const connect: MakeRunnerConfig['connect'] = async ({ uid, cleanables, programPa
       ];
       logger.debug('[RIT args]', ritArgs);
       const subprocess = pty.spawn(ritArgs[0] || '', ritArgs.slice(1), {
-      //const subprocess = pty.spawn(argv, args, {
         name: title ?? 'reverse_command',
         cols: 80,
         rows: 1,
@@ -112,7 +123,10 @@ const connect: MakeRunnerConfig['connect'] = async ({ uid, cleanables, programPa
           reject(new Error(`Terminal request exited with code ${e.exitCode}`));
         }
       });
-      //subprocess.write(`${argv} ${args.join(' ')}\r`);
+      inputStream?.on('data', (data: string) => {
+        logger.debug('[input stream]', data);
+        subprocess.write(data);
+      });
 
       cleanables.push(subprocess);
 
@@ -132,6 +146,7 @@ const connect: MakeRunnerConfig['connect'] = async ({ uid, cleanables, programPa
     program: compiledPath,
     mainClass: path.basename(compiledPath, '.class'),
     classPaths: [ path.dirname(compiledPath) ],
+    //    stdio: [ inputPath, null, null ],
     console: 'integratedTerminal',
     internalConsoleOptions: 'neverOpen',
     justMyCode: true,
@@ -153,8 +168,6 @@ const connect: MakeRunnerConfig['connect'] = async ({ uid, cleanables, programPa
 
 
 async function compile(programPath: string, uid: number, cleanables: Cleanable[]): Promise<string> {
-  // TODO :: handle compilation errors
-
   const compilationPath = path.join('/tmp', 'javac-' + uid.toString());
   fs.mkdirSync(compilationPath, { recursive: true });
   cleanables.push({ path: compilationPath });
@@ -179,11 +192,22 @@ async function compile(programPath: string, uid: number, cleanables: Cleanable[]
   logger.info('Compiling Java', subprocessParams.join(' '));
 
   const subprocess = cp.spawn(subprocessParams[0] as string, subprocessParams.slice(1), {
-    stdio: 'inherit',
+    stdio: 'pipe',
   });
-  await new Promise<void>(resolve => {
-    // TODO :: get compilation errors
-    subprocess.on('close', () => resolve());
+  cleanables.push(subprocess);
+
+  await new Promise<void>((resolve, reject) => {
+    let stderr = '';
+    subprocess.stderr.on('data', (data: Buffer) => {
+      stderr += data.toString('utf-8');
+    });
+
+    subprocess.on('close', exitCode => {
+      if ((exitCode || 0) > 0) {
+        reject(new CompilationError(stderr));
+      }
+      resolve();
+    });
   });
 
   const compiledFileName = fs.readdirSync(compilationPath).find(file => file.endsWith('.class'));
