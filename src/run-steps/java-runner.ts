@@ -109,7 +109,7 @@ const connect: MakeRunnerConfig['connect'] = async ({ uid, cleanables, programPa
         });
       });
       subprocess.onExit(e => {
-        logger.debug('[on exit]', e);
+        logger.debug('[RIT on exit]', e);
         if (e.exitCode > 0) {
           reject(new Error(`Terminal request exited with code ${e.exitCode}`));
         }
@@ -118,7 +118,7 @@ const connect: MakeRunnerConfig['connect'] = async ({ uid, cleanables, programPa
       cleanables.push(subprocess);
 
       logger.debug(7, '[Java StepsRunner] ran requested command in terminal');
-      setTimeout(resolve, 1000);
+      setTimeout(resolve, 1);
 
       // subprocess.stdout.on('data', (data) => logger.debug('[stdout]', data.toString('utf-8')))
       // subprocess.stderr.on('data', (data) => logger.debug('[stderr]', data.toString('utf-8')))
@@ -240,10 +240,9 @@ async function spawnDebugAdapterServer(
   // subprocess.stdout.on('data', (data: Buffer) => {
   //   logger.debug('[LSP stdout]', data.toString('utf-8'));
   // });
-  subprocess.stderr.on('data', (data: Buffer) => {
-    logger.debug('[LSP stderr]', data.toString('utf-8'));
-  });
-
+  // subprocess.stderr.on('data', (data: Buffer) => {
+  //   logger.debug('[LSP stderr]', data.toString('utf-8'));
+  // });
 
   const endpoint = new JSONRPCEndpoint(subprocess.stdin, subprocess.stdout);
   // Note : the LSP client is not used that much, we could maybe get rid of that dependency and just communicate with the endpoint
@@ -259,20 +258,17 @@ async function spawnDebugAdapterServer(
       bundles: [ '/usr/project/java-debug/com.microsoft.java.debug.plugin/target/com.microsoft.java.debug.plugin-0.50.0.jar' ],
     },
   });
-  // const initResult = await endpoint.send('initialize', {
-  //   processId: subprocess.pid || 0,
-  //   rootUri: null,
-  //   capabilities: {},
-  //   workspaceFolders: null,
-  //   initializationOptions: {
-  //     bundles: [ '/usr/project/java-debug/com.microsoft.java.debug.plugin/target/com.microsoft.java.debug.plugin-0.49.0.jar' ],
-  //   },
-  // }) as unknown;
   logger.debug('LSP Initialized', initResult);
 
   // Send a raw command to start the debug session
   const dapPort = await endpoint.send('workspace/executeCommand', {
     command: 'vscode.java.startDebugSession',
   }) as number;
+
+  // Send something regularly to keep the connection alive
+  const interval = setInterval(() => {
+    void endpoint.send('$/progress', { token: 'noop', value: 100 });
+  }, 5000);
+  cleanables.push({ unsubscribe: () => clearInterval(interval) });
   logger.debug('LSP Debug Session Started', dapPort);
 }
