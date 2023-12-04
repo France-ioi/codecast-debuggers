@@ -44,15 +44,21 @@ interface CleanableServerResourcesList {
  */
 export async function getLeftoverResources(): Promise<CleanableServerResourcesList> {
   // Delete all files and folders in sources
-  const dataFolders = await fsp.readdir(config.dataPath);
-  const files = (await Promise.all(dataFolders
-    .filter(folder => !config.dataCleanupExclude.includes(folder))
-    .map(async folder => {
-      const folderPath = path.join(config.dataPath, folder);
+  let files: string[] = [];
 
-      return (await fsp.readdir(folderPath)).map(file => path.join(folder, file));
-    })
-  )).flat();
+  try {
+    const dataFolders = await fsp.readdir(config.dataPath);
+    files = (await Promise.all(dataFolders
+      .filter(folder => !config.dataCleanupExclude.includes(folder))
+      .map(async folder => {
+        const folderPath = path.join(config.dataPath, folder);
+
+        return (await fsp.readdir(folderPath)).map(file => path.join(folder, file));
+      })
+    )).flat();
+  } catch (e) {
+    // ignore
+  }
 
   // Stop all docker containers
   const docker = new Docker();
