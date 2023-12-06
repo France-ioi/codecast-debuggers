@@ -98,10 +98,9 @@ function handleConnection(ws: WebSocket): void {
       clientLanguage = 'cpp';
     }
     const language = clientLanguage as Language;
-    const inputPath = '';
+    let inputPath = '';
     if (input) {
-      // TODO :: change folder
-      const inputPath = getPath('inputs', uid, 'input.txt');
+      inputPath = getPath('inputs', uid, 'input.txt');
       fs.writeFileSync(inputPath, input);
     }
     sourcePath = getPath('sources', uid, 'source' + extensionByLanguage[language]);
