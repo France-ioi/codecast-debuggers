@@ -1,8 +1,10 @@
 import fs from 'fs';
+import path from 'path';
 import { logger } from './logger';
 import { CommandLineOptions, commandOptions } from './command_arguments';
 import { getSteps } from './debug';
 import { getPath } from './utils';
+
 
 async function main(commandOptions: CommandLineOptions): Promise<void> {
   const mainStartTime = process.hrtime();
@@ -11,11 +13,15 @@ async function main(commandOptions: CommandLineOptions): Promise<void> {
   const steps = await getSteps(commandOptions);
   logger.info('[debug] steps received');
 
-  fs.writeFileSync(getPath('debug-results', undefined, 'steps.json'), JSON.stringify(steps), 'utf-8');
+  const stepsFileName = path.basename(commandOptions.sourcePath, path.extname(commandOptions.sourcePath)).replace(/[^A-Za-z0-9]/g, '_') + '_steps.json';
+  const stepsFilePath = getPath('debug-results', undefined, stepsFileName);
+
+  fs.writeFileSync(stepsFilePath, JSON.stringify(steps), 'utf-8');
   logger.dir(steps, { colors: true, depth: 10 });
 
   const mainDuration = process.hrtime(mainStartTime);
   logger.log('Main script duration : ', (mainDuration[0] + (mainDuration[1] / 1000000000)));
+  logger.log(steps.length.toString() + ' steps saved to: ' + stepsFilePath);
 }
 
 main(commandOptions)
@@ -24,3 +30,4 @@ main(commandOptions)
     logger.error(e);
     process.exit(1);
   });
+
