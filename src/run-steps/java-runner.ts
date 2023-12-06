@@ -1,5 +1,6 @@
 import cp from 'child_process';
 import fs from 'fs';
+import fsp from 'fs/promises';
 import path from 'path';
 import { SocketDebugClient } from 'node-debugprotocol-client';
 import { DebugProtocol } from 'vscode-debugprotocol';
@@ -22,7 +23,7 @@ export const runStepsWithJavaDebugger = (options: RunnerOptions): Promise<Runner
   return runner({ ...options, main: { relativePath: programPath } } as RunnerOptions);
 };
 
-const connect: MakeRunnerConfig['connect'] = async ({ uid, cleanables, programPath, logLevel, onOutput, beforeInitialize }) => {
+const connect: MakeRunnerConfig['connect'] = async ({ uid, cleanables, programPath, inputPath, logLevel, onOutput, beforeInitialize }) => {
   const language = 'Java';
   const dap = {
     host: 'localhost',
@@ -120,6 +121,15 @@ const connect: MakeRunnerConfig['connect'] = async ({ uid, cleanables, programPa
       logger.debug(7, '[Java StepsRunner] ran requested command in terminal');
       setTimeout(resolve, 1);
 
+      if (inputPath) {
+        logger.debug(`[RIT] adding input from ${inputPath}`);
+        fsp.readFile(inputPath).then(
+          buffer => subprocess.write(buffer.toString('utf-8'))
+        ).catch(e => {
+          logger.error(`[RIT] error reading input file ${inputPath}`, e);
+        });
+      }
+
       // subprocess.stdout.on('data', (data) => logger.debug('[stdout]', data.toString('utf-8')))
       // subprocess.stderr.on('data', (data) => logger.debug('[stderr]', data.toString('utf-8')))
       return Promise.resolve({ processId: subprocess.pid, shellProcessId: process.pid });
@@ -133,7 +143,6 @@ const connect: MakeRunnerConfig['connect'] = async ({ uid, cleanables, programPa
     program: compiledPath,
     mainClass: path.basename(compiledPath, '.class'),
     classPaths: [ path.dirname(compiledPath) ],
-    //    stdio: [ inputPath, null, null ],
     console: 'integratedTerminal',
     internalConsoleOptions: 'neverOpen',
     justMyCode: true,
