@@ -43,7 +43,7 @@ export async function getSteps(commandOptions: CommandLineOptions): Promise<Step
 
     function onTerminate(message: TerminationMessage): void {
       logger.info('[debug] onTerminate', message);
-      steps.push({ terminated: true, terminatedReason: message.type != 'end' ? message.type : undefined });
+      steps.push({ terminated: true, terminatedReason: message.type != 'end' ? message.message : undefined });
       resolve(steps);
     }
 

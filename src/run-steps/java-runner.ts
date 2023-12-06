@@ -1,6 +1,5 @@
 import cp from 'child_process';
 import fs from 'fs';
-import fsp from 'fs/promises';
 import path from 'path';
 import { SocketDebugClient } from 'node-debugprotocol-client';
 import { DebugProtocol } from 'vscode-debugprotocol';
@@ -18,6 +17,15 @@ export const runStepsWithJavaDebugger = (options: RunnerOptions): Promise<Runner
   const runner = makeRunner({
     connect,
     canDigVariable: variable => variable.type != 'Scanner',
+    terminationHandler: (lastOutput, _exitCode) => {
+      // Java outputs errors on stdout and exits with code 0
+      const stdout = lastOutput.stdout.join('');
+      if (stdout.includes('Exception in thread ')) {
+        return { type: 'terminated', message: 'Program ended with an error:\n' + stdout };
+      }
+
+      return { type: 'end', message: 'Program ended' };
+    },
   });
 
   return runner({ ...options, main: { relativePath: programPath } } as RunnerOptions);
@@ -32,6 +40,14 @@ const connect: MakeRunnerConfig['connect'] = async ({ uid, cleanables, programPa
 
   cleanables.push({ path: programPath });
   const compiledPath = await compile(programPath, uid, cleanables);
+  cleanables.push({ path: compiledPath });
+
+  let localInputPath: string|null = null;
+  if (inputPath) {
+    localInputPath = getPath('inputs', uid, 'input.txt');
+    fs.writeFileSync(localInputPath, fs.readFileSync(inputPath), 'utf-8');
+    cleanables.push({ path: localInputPath });
+  }
 
   logger.debug(1, '[Java StepsRunner] start adapter server');
   await spawnDebugAdapterServer(dap, programPath, compiledPath, cleanables);
@@ -83,12 +99,22 @@ const connect: MakeRunnerConfig['connect'] = async ({ uid, cleanables, programPa
         throw new Error('argv must be defined');
       }
       logger.debug('[Event] RunInTerminalRequest', { argv, args, cwd, env, kind, title });
-      const ritArgs = [
-        'docker', 'exec', '-it', 'java-' + uid.toString(),
+
+      const javaArgs = [
         '/opt/java/openjdk/bin/java',
         ...args,
       ];
+
+      // We pipe an input to java so that it receives a proper EOF; writing EOF to the pty doesn't work
+      const inputArgs = localInputPath ? [ 'cat', localInputPath ] : [ 'echo', '-n' ];
+
+      const ritArgs = [
+        'docker', 'exec', '-it', 'java-' + uid.toString(),
+        'bash', '-c',
+        `${inputArgs.join(' ')} | ${javaArgs.join(' ')}`,
+      ];
       logger.debug('[RIT args]', ritArgs);
+
       const subprocess = pty.spawn(ritArgs[0] || '', ritArgs.slice(1), {
         name: title ?? 'reverse_command',
         cols: 80,
@@ -121,15 +147,6 @@ const connect: MakeRunnerConfig['connect'] = async ({ uid, cleanables, programPa
       logger.debug(7, '[Java StepsRunner] ran requested command in terminal');
       setTimeout(resolve, 1);
 
-      if (inputPath) {
-        logger.debug(`[RIT] adding input from ${inputPath}`);
-        fsp.readFile(inputPath).then(
-          buffer => subprocess.write(buffer.toString('utf-8'))
-        ).catch(e => {
-          logger.error(`[RIT] error reading input file ${inputPath}`, e);
-        });
-      }
-
       // subprocess.stdout.on('data', (data) => logger.debug('[stdout]', data.toString('utf-8')))
       // subprocess.stderr.on('data', (data) => logger.debug('[stderr]', data.toString('utf-8')))
       return Promise.resolve({ processId: subprocess.pid, shellProcessId: process.pid });
@@ -149,12 +166,6 @@ const connect: MakeRunnerConfig['connect'] = async ({ uid, cleanables, programPa
     noDebug: false,
   } as DebugProtocol.LaunchRequestArguments);
 
-  // await Promise.race([
-  //   launched.then(_response => {
-  //     logger.debug('[Java StepsRunner] launched');
-  //   }),
-  //   initialized,
-  // ]);
   await initialized;
   await launched;
   await waitForRunInTerminal;

@@ -76,6 +76,11 @@ export interface MakeRunnerConfig {
   canDigVariable?: RunStepContext['canDigVariable'],
 
   /**
+   * Custom handler for program termination
+   */
+  terminationHandler?: (lastOutput: { stdout: string[], stderr: string[] }, exitCode?: number) => TerminationMessage,
+
+  /**
    * For some languages, extra steps are required to clean up the env.
    * For instance, for compiled languages, the runner will remove compiled files.
    */
@@ -133,6 +138,7 @@ export const makeRunner = ({
   canDigStackFrame = (): boolean => true,
   canDigScope = (): boolean => true,
   canDigVariable = (): boolean => true,
+  terminationHandler,
 }: MakeRunnerConfig): RunnerFactory => {
   const destroyed = false;
   const lastOutput = {
@@ -180,14 +186,18 @@ export const makeRunner = ({
 
     async function onEnd(exitCode?: number): Promise<void> {
       logger.debug('[runner] onEnd');
-      if (exitCode !== undefined && exitCode !== 0) {
-        let msg = 'Program ended with an error';
-        if (lastOutput.stderr.length > 0) {
-          msg += ': \n' + lastOutput.stderr.join('');
-        }
-        options.onTerminate({ type: 'terminated', message: msg });
+      if (terminationHandler) {
+        options.onTerminate(terminationHandler(lastOutput, exitCode));
       } else {
-        options.onTerminate({ type: 'end', message: 'Program ended' });
+        if (exitCode !== undefined && exitCode !== 0) {
+          let msg = 'Program ended with an error';
+          if (lastOutput.stderr.length > 0) {
+            msg += ':\n' + lastOutput.stderr.join('');
+          }
+          options.onTerminate({ type: 'terminated', message: msg });
+        } else {
+          options.onTerminate({ type: 'end', message: 'Program ended' });
+        }
       }
       await destroy('onEnd', { destroyed, client, cleanables, programPath, afterDestroy });
     }
