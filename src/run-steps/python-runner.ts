@@ -211,9 +211,14 @@ async function spawnDebugAdapterServer(
     logger.log('cmdline', subprocessParams.join(' '));
 
     const subprocess = cp.spawn(subprocessParams[0] as string, subprocessParams.slice(1), {
-      stdio: [ (inputPath) ? fs.createReadStream(inputPath) : 'ignore', 'pipe', 'pipe' ],
+      stdio: [ (inputPath) ? 'pipe' : 'ignore', 'pipe', 'pipe' ],
     });
     cleanables.push(subprocess);
+
+    if (inputPath && subprocess.stdin) {
+      fs.createReadStream(inputPath).pipe(subprocess.stdin);
+    }
+
 
     subprocess.on('error', error => logger.error('Server error:', error));
   });
