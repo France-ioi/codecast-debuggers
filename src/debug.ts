@@ -1,36 +1,26 @@
 import path from 'path';
-import fs from 'fs';
 import { logger } from './logger';
 import { languageByExtension, getRunner, toLanguageExtension } from './run-steps/factory';
-import { CommandLineOptions, commandOptions } from './command_arguments';
 import { Runner } from './run-steps/runner';
 import { StepSnapshot, StepsAcc, TerminationMessage } from './snapshot';
 import { getUid } from './utils';
 
-logger.log(process.argv);
-logger.debug('process args', commandOptions);
+export interface GetStepsOptions {
+  sourcePath: string,
+  inputPath: string,
+  breakpoints: string,
+}
 
-export async function getSteps(commandOptions: CommandLineOptions): Promise<StepsAcc> {
-  if (!commandOptions.sourcePath || !fs.existsSync(commandOptions.sourcePath)) {
-    throw new Error(`Source file "${commandOptions.sourcePath}" not found.`);
-  }
-
-  if (commandOptions.inputPath && !fs.existsSync(commandOptions.inputPath)) {
-    throw new Error(`Input file "${commandOptions.inputPath}" not found.`);
-  }
-
-  const fileExtension = path.extname(commandOptions.sourcePath);
+export async function getSteps(options: GetStepsOptions): Promise<StepsAcc> {
+  const fileExtension = path.extname(options.sourcePath);
   const language = languageByExtension[toLanguageExtension(fileExtension)];
   if (!language) {
-    logger.error(new Error(`Unrecognized file extension: "${fileExtension}". Accepted: "${Object.keys(languageByExtension).join('", "')}"`));
-    process.exit(1);
+    throw new Error(`Unrecognized file extension: "${fileExtension}". Accepted: "${Object.keys(languageByExtension).join('", "')}"`);
   }
 
-  logger.debug({ language, sourcePath: commandOptions.sourcePath, inputPath: commandOptions.inputPath });
+  const inputPath = options.inputPath && path.resolve(options.inputPath);
 
-  if (commandOptions.inputPath) {
-    commandOptions.inputPath = path.resolve(commandOptions.inputPath);
-  }
+  logger.debug({ language, inputPath, breakpoints: options.breakpoints });
 
   return new Promise(resolve => {
     const steps: StepsAcc = [];
@@ -50,10 +40,10 @@ export async function getSteps(commandOptions: CommandLineOptions): Promise<Step
     void getRunner(language, {
       uid: getUid(),
       logLevel: logger.level === 'debug' ? 'On' : 'Off',
-      main: { relativePath: commandOptions.sourcePath },
-      inputPath: commandOptions.inputPath,
+      main: { relativePath: options.sourcePath },
+      inputPath,
       files: [],
-      breakpoints: commandOptions.breakpoints,
+      breakpoints: options.breakpoints,
       onSnapshot,
       onTerminate,
     }).then(r => runner = r);

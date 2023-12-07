@@ -11,7 +11,7 @@
     "build:php": "docker build -f ./PHP_Dockerfile . -t php-debugger",
     "build:python": "docker build -f ./Python_Dockerfile . -t python-debugger",
     "build:java": "docker build -f ./Java_Dockerfile . -t java-debugger",
-    "debug": "LOG_LEVEL=debug node out/debug-cli.js",
+    "debug": "LOG_LEVEL=debug node out/cli.js",
     "lint": "eslint src",
     "lint:fix": "eslint --fix src",
     "pretest": "npm run build:ts",

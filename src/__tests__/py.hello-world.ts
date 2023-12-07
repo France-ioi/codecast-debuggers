@@ -6,7 +6,7 @@ describe('samples hello_world.py', () => {
   jest.setTimeout(30000);
   let snapshots!: StepSnapshot[];
   beforeAll(async () => {
-    snapshots = await getSteps({ sourcePath: './samples/python/hello_world.py', inputPath: '', breakpoints: '*', help: false }) as StepSnapshot[];
+    snapshots = await getSteps({ sourcePath: './samples/python/hello_world.py', inputPath: '', breakpoints: '*' }) as StepSnapshot[];
   });
 
 

@@ -5,7 +5,7 @@ import { StepSnapshot } from '../snapshot';
 describe('samples hello_world.c', () => {
   let snapshots!: StepSnapshot[];
   beforeAll(async () => {
-    snapshots = await getSteps({ sourcePath: './samples/c/hello_world.c', inputPath: '', breakpoints: '*', help: false }) as StepSnapshot[];
+    snapshots = await getSteps({ sourcePath: './samples/c/hello_world.c', inputPath: '', breakpoints: '*' }) as StepSnapshot[];
   });
 
   it('should have valid outputs', () => {
